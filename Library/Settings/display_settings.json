@@ -1,0 +1,25 @@
+{
+    "startProj": [
+        2577,
+        8215
+    ],
+    "DefMag": [
+        "C200824NB",
+        "C14"
+    ],
+    "fontsize": 12,
+    "height": 25,
+    "windowheight": 812,
+    "windowwidth": 1375,
+    "posx": 4476,
+    "posy": 159,
+    "curves": [
+        "ETHCal",
+        "None"
+    ],
+    "curveColors": [
+        "#ff5500",
+        "#000000"
+    ],
+    "ageBool": true
+}
