@@ -112,7 +112,7 @@ class MainPLotWorker(QThread):
             self.maxx = max(self.maxx,maxx+ rangeadd)
             self.minx = min(self.minx,minx - rangeadd)
         if calc.plotsettings['chronology'] and index == 0  and len(calc.wiggleyears)>0:
-            self.data['axvline'].append({'x':max(calc.wiggleyears),'ymax':0.5,'color':color,'label':None})
+            self.data['axvline'].append({'x':max(calc.wiggleyears),'ymax':1,'color':color,'label':None})
             #self.ax[1].axvline(max(calc.wiggleyears),color=color,ymax=0.5)
         if len(calc.wiggleyears)>0:
             self.plot_percentiles(calc,curve,index)

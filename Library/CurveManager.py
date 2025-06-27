@@ -4,7 +4,6 @@ from matplotlib import pyplot as plt
 
 from Library.HelperFunctions import *
 from numpy import exp, log, arange, zeros, random, ones, sin, pi, append, all as npall, diff, mean, sum as npsum, sqrt
-import pathlib
 from PyQt5.QtWidgets import  QFileDialog
 from pathlib import Path
 import json
@@ -55,7 +54,7 @@ class CurveManager():
 
     def load_all_curves(self):
         folder = 'Library\\Data\\Curves\\'
-        files = list(pathlib.Path(folder).glob('*.json'))
+        files = list(Path(folder).glob('*.json'))
         self.data = {}
         for file in files:
             file_name = file.stem

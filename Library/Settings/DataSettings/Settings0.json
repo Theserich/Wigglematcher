@@ -1,18 +1,18 @@
 {
-    "dataName": "Vrbnik",
+    "dataName": "Vrbnik1",
     "colors": [
         "#ff5500",
         "#000000"
     ],
     "colorbools": [
-        false,
+        true,
         false
     ],
     "buttonColors": [
         "#ff5500",
         "#000000"
     ],
-    "plotbool": true,
+    "plotbool": false,
     "showfits": [
         true,
         false

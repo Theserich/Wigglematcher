@@ -35,7 +35,7 @@ A PyQt5-based desktop application for data visualization and analysis with inter
 
 ## Usage
 
-Run the main application:
+Run the main applic[requirements.txt](requirements.txt)ation:
 ```bash
 python main.py
 ```
