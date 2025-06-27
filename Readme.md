@@ -35,23 +35,7 @@ A PyQt5-based desktop application for data visualization and analysis with inter
 
 ## Usage
 
-Run the main application:
+Run the main applic[requirements.txt](requirements.txt)ation:
 ```bash
 python main.py
 ```
-.
-├── main.py                 # Main application entry point
-├── Library/                # Core application modules
-│   ├── MainWindow.py      # Main application window
-│   ├── EditableTabWidget.py # Custom tab widget implementation
-│   ├── PLotWindow.py      # Plot window functionality
-│   ├── tableView.py       # Data table view components
-│   ├── dataMager.py       # Data management utilities
-│   ├── ExcelWorker.py     # Excel file handling
-│   ├── CurveManager.py    # Plot curve management
-│   ├── UIFiles/           # UI definition files
-│   ├── Data/              # Data storage
-│   ├── Settings/          # Application settings
-│   └── SaveFolder/        # Save directory
-├── tests/                 # Test files
-└── pytest.ini            # Pytest configuration
