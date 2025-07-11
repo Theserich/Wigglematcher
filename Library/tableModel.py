@@ -23,7 +23,6 @@ class MyTableModel(QAbstractTableModel):
         self.updateHeader()
 
 
-
     def rowCount(self, parent=None):
         try:
             return len(self.data[next(iter(self.data))])
@@ -59,7 +58,6 @@ class MyTableModel(QAbstractTableModel):
                 bgColor = QColor(100, 100, 100)
                 bgColor.setAlpha(140)
                 return QVariant(bgColor)
-
         elif role == 1:
             return self.data[key][row]
         else:

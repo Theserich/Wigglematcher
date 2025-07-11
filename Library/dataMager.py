@@ -198,8 +198,8 @@ class Calculator:
 
     def recalc_all(self):
         self.calcOffset()
-        #self.calc_probs()
-        self.calc_probs_with_ranges()
+        self.calc_probs()
+        #self.calc_probs_with_ranges()
         self.calc_bayesian_prob()
         self.calc_percentile_ranges()
 

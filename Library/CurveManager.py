@@ -65,19 +65,6 @@ class CurveManager():
                 data[key] = array(data[key])
             self.data[file_name] = data
 
-    def generateSynthCurve(self):
-        self.data['SynthAnnual'] = {}
-        self.data['SynthAnnual']['calendaryear'] = arange(min(self.data['intcal20']['calendaryear']),
-                                                          max(self.data['intcal20']['calendaryear']))
-        self.data['SynthAnnual']['bp'] = 1950 - self.data['SynthAnnual']['calendaryear']
-        fms = self.data['intcal20']['Interpol'](self.data['SynthAnnual']['calendaryear'])
-        delta = (fms * exp(self.data['SynthAnnual']['bp'] / 8267) - 1) * 1000
-        sindelta = self.amp * sin(2 * pi / 11 * self.data['SynthAnnual']['calendaryear'])
-        delta = delta + sindelta
-        fms = (delta / 1000 + 1) * exp(-self.data['SynthAnnual']['bp'] / 8267)
-        self.data['SynthAnnual']['fm'] = random.normal(fms, fms * self.syntherror / 1000)
-        self.data['SynthAnnual']['fm_sig'] = ones(len(fms)) * self.syntherror / 1000
-
 
     def save_curves(self):
         folder = 'Library\\Data\\Curves\\'
@@ -137,11 +124,14 @@ class CurveManager():
         newdict['bp'] = result_dict['bp']
         newdict['fm'] = exp(-result_dict['14C age']/8033)
         newdict['fm_sig'] = newdict['fm'] /8033*result_dict['Sigma1']
+        newdict[f'fm_{1}'] = newdict['fm']
+        newdict[f'fm_sig_{1}'] = newdict['fm_sig']
         savedict = {}
         for key in newdict:
             savedict[key] = list(newdict[key])
         self.data[savename] = newdict
-
+        for window_length in range(1, 10):
+            self.generate_averaged_curves(savename,window_length)
         with open(f'{self.curve_folder}{savename}.json', 'w', encoding='utf-8') as file:
             json.dump(savedict, file)
         return True

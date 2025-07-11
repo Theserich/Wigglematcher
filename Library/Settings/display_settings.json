@@ -9,17 +9,17 @@
     ],
     "fontsize": 12,
     "height": 25,
-    "windowheight": 812,
-    "windowwidth": 1375,
-    "posx": 4476,
-    "posy": 159,
+    "windowheight": 987,
+    "windowwidth": 1680,
+    "posx": 2430,
+    "posy": 175,
     "curves": [
         "ETHCal",
-        "None"
+        "intcal20"
     ],
     "curveColors": [
         "#ff5500",
         "#000000"
     ],
-    "ageBool": true
+    "ageBool": false
 }

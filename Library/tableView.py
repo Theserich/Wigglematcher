@@ -2,7 +2,8 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QTableView, QAbstractIte
 from PyQt5.QtGui import  QKeySequence, QClipboard, QStandardItem
 from PyQt5.QtWidgets import QMenu, QAction,QHeaderView
 from PyQt5.QtCore import Qt, QItemSelectionModel
-
+from copy import copy, deepcopy
+from numpy import argsort, arange, append, full, nan
 
 class MyTableView(QTableView):
     def __init__(self, parent=None):
@@ -50,48 +51,78 @@ class MyTableView(QTableView):
 
     def pasteSelection(self):
         model = self.model()
+        columns = model.columns
+        order = model.order
+        sort_column = model.sort_column
         clipboard = QApplication.clipboard()
-        data = clipboard.text()
-        if not data:
-            return
+        pastedata = clipboard.text()
 
-        data = data.rstrip("\n")
+        if not pastedata:
+            return
+        pastedata = pastedata.rstrip("\n")
         selected_indexes = self.selectionModel().selectedIndexes()
         if not selected_indexes:
             return
-
+        #datapreparation
+        data = copy(model.data)
+        if sort_column == -1:
+            sortind = arange(len(data['year']))
+        else:
+            sortind = argsort(data[columns[sort_column]])
+        if model.order == Qt.DescendingOrder:
+            sortind = sortind[::-1]
+        inverse_sortind = argsort(sortind)
+        for key in data: data[key] = data[key][sortind]
         selected_indexes.sort(key=lambda i: (i.row(), i.column()))
         start_row = selected_indexes[0].row()
         start_col = selected_indexes[0].column()
-
-        rows = data.split('\n')
+        rows = pastedata.split('\n')
         num_rows = len(rows)
         model_rows = model.rowCount()
         if start_row + num_rows > model_rows:
             extra_rows = (start_row + num_rows) - model_rows
-            model.insertRows(model_rows, extra_rows)
-        model_cols = model.columnCount()
-
-        pasted_indexes = []
-        success = True
+            for key in data:
+                if key == 'active':
+                    data[key] = append(data[key], full(extra_rows, True))
+                else:
+                    data[key] = append(data[key], full(extra_rows, data[key][-1]))
+            print(len(data['year']))
 
         for r, row_data in enumerate(rows):
             cols = row_data.split('\t')
             for c, value in enumerate(cols):
-                print(value,r,c)
-                model_index = model.index(start_row + r, start_col + c)
-                print(value)
+                colindex = start_col + c
+                rowindex = start_row + r
+                model_index = model.index(rowindex, colindex)
                 if model_index.isValid():
-                    print(value)
-                    model.setData(model_index, value, recalc=False)
-                    #if not success:
-                    #    break
-                    pasted_indexes.append(model_index)
-            if not success:
-                break
-        model.sort_column = -1
-        model.sort(model.sort_column, model.order)
-        model.calc.recalc_wiggledata(fm=model.fmcalc)
+
+                    #model.setData(model_index, value, recalc=False)
+                    col = columns[colindex]
+                    print(col,value)
+                    if col in ['A_i','active']:
+                        continue
+                    elif col in ['range']:
+                        try:
+                            data[col][rowindex] = int(value)
+                        except:
+                            pass
+                    elif col in ['year','fm','fm_sig','age','age_sig']:
+                        try:
+                            data[col][rowindex] = float(value)
+                        except:
+                            pass
+                    else:
+                        data[col][rowindex] = value
+        #for key in data: data[key] = data[key][inverse_sortind]
+        model.layoutAboutToBeChanged.emit()
+        model.calc.wiggledata = data
+        model.data = data
+        model.rowCount()
+        model.sort(sort_column,order)
+        model.layoutChanged.emit()
+
+        #model.sort(sort_column, order)
+        model.calc.recalc_wiggledata(fm=True)
         model.parent.recalcFlag = True
         model.parent.recalcIndex = model.tabIndex
         model.parent.redraw()
@@ -155,7 +186,6 @@ class TriStateHeader(QHeaderView):
                 self._sort_state[key] = 0
 
         if new_state == 0:
-            # No sort
             self.setSortIndicator(-1, Qt.AscendingOrder)
             self.parent().model().layoutAboutToBeChanged.emit()
             self.parent().model().sort(-1, Qt.AscendingOrder)
