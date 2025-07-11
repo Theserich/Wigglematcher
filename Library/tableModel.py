@@ -130,9 +130,9 @@ class MyTableModel(QAbstractTableModel):
         if 'label' in self.calc.wiggledata:
             self.columns += ['label']
         if self.parent.ageBox.isChecked():
-            self.columns += ['year', 'age', 'age_sig','range', 'active']
+            self.columns += ['year', 'age', 'age_sig', 'active']#,'range'
         else:
-            self.columns += ['year', 'fm', 'fm_sig','range', 'active']
+            self.columns += ['year', 'fm', 'fm_sig', 'active']#,'range'
         for curve in self.calc.curves:
             if curve != 'None':
                 key = f'{curve}A_i'

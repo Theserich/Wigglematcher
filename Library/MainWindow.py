@@ -36,6 +36,7 @@ class WidgetMain(QMainWindow):
             self.__dict__[f'colorbutton{i}'].clicked.connect(self.open_color_dialog)
             self.__dict__[f'colorbutton{i}'].setStyleSheet(f"background-color: {self.curveColors[i]};")
             self.__dict__[f'spinBox{i}'].valueChanged.connect(self.change_displayed_curve_version)
+            self.__dict__[f'spinBox{i}'].hide()
         for curve in self.curveManager.data:
             for i in range(self.Ncurves):
                 self.__dict__[f'curveBox{i}'].addItem(curve)
@@ -211,7 +212,7 @@ class WidgetMain(QMainWindow):
             self.ax[1].set_ylim(bottom=0, top=maxy)
         except:
             pass
-        overlap = 1
+        overlap = 0.75
         ylim = self.ax[0].get_ylim()
         dy = ylim[1] - ylim[0]
         self.ax[0].set_ylim(bottom=ylim[0] - dy * overlap, top=ylim[1])
@@ -235,8 +236,46 @@ class WidgetMain(QMainWindow):
             self.progressBar.setValue(0)
         self.recalcFlag = False
         self.recalcIndex = None
+
         for dataset in self.datasets:
             dataset.update_all()
+
+    def setBounds(self,overlap):
+        ax = self.ax
+        n = len(ax)
+        xlim = ax[0].get_xlim()
+        xticks = ax[0].get_xticks()
+
+        for i, x in enumerate(ax):
+            ticks = x.get_yticks()
+            dticks = ticks[1] - ticks[0]
+            maxy = max(ticks)
+            miny = min(ticks)
+            dy = maxy - miny
+            nonscaletotheight = n * dy
+            totheight = nonscaletotheight - (n - 1) * overlap * dy
+            top = maxy + i * (1 - overlap) * dy
+            bottom = top - totheight
+            ylabelheight = (miny - bottom + dy / 2) / totheight
+            labelheight = (miny + 0.8 * dy - bottom) / totheight
+            if i % 2 == 0:
+                x.yaxis.tick_left()
+                x.spines['left'].set_bounds((ticks[1], ticks[-2]))
+                x.spines['right'].set_visible(False)
+                Axis.set_label_coords(x.yaxis, 1.07, ylabelheight)
+            else:
+                x.yaxis.tick_right()
+                x.spines['right'].set_bounds((ticks[1], ticks[-2]))
+                x.spines['left'].set_visible(False)
+                Axis.set_label_coords(x.yaxis, 1 + 0.05, ylabelheight)
+            x.set_ylim(top=top, bottom=bottom)
+            x.set_yticks(ticks[1:-1])
+            # x.set_ylabel('')
+            x.spines['top'].set_visible(False)
+            if i == 0:
+                x.spines['bottom'].set_bounds((xticks[1], xticks[-2]))
+            else:
+                x.spines['bottom'].set_visible(False)
 
 
     def redraw(self):

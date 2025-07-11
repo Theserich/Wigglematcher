@@ -2,6 +2,7 @@ from sys import argv, exit
 from PyQt5.QtWidgets import QApplication
 from Library.MainWindow import WidgetMain
 from pyqtgraph.Qt import QtCore
+from pathlib import Path
 import matplotlib
 matplotlib.use("Qt5Agg")
 from Library.EditableTabWidget import EditableTabWidget
@@ -11,7 +12,7 @@ if __name__ == '__main__':
         QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
         QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, True)
         app = QApplication(argv)
-        widget = WidgetMain('Library\\UIFiles\\MainWindow.ui')
+        widget = WidgetMain(Path('Library\\UIFiles\\MainWindow.ui'))
         widget.show()
         #app.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps)
         # Set the application to use high DPI scaling
