@@ -3,7 +3,7 @@ from PyQt5.QtGui import  QKeySequence, QClipboard, QStandardItem
 from PyQt5.QtWidgets import QMenu, QAction,QHeaderView
 from PyQt5.QtCore import Qt, QItemSelectionModel
 from copy import copy, deepcopy
-from numpy import argsort, arange, append, full, nan
+from numpy import argsort, arange, append, full, nan, float64
 
 class MyTableView(QTableView):
     def __init__(self, parent=None):
@@ -71,7 +71,7 @@ class MyTableView(QTableView):
             sortind = argsort(data[columns[sort_column]])
         if model.order == Qt.DescendingOrder:
             sortind = sortind[::-1]
-        inverse_sortind = argsort(sortind)
+
         for key in data: data[key] = data[key][sortind]
         selected_indexes.sort(key=lambda i: (i.row(), i.column()))
         start_row = selected_indexes[0].row()
@@ -86,43 +86,39 @@ class MyTableView(QTableView):
                     data[key] = append(data[key], full(extra_rows, True))
                 else:
                     data[key] = append(data[key], full(extra_rows, data[key][-1]))
-            print(len(data['year']))
-
+            sortind = append(sortind, arange(len(sortind), len(sortind) + extra_rows))
+        #model.data = data
         for r, row_data in enumerate(rows):
             cols = row_data.split('\t')
             for c, value in enumerate(cols):
                 colindex = start_col + c
                 rowindex = start_row + r
+                col = columns[colindex]
                 model_index = model.index(rowindex, colindex)
-                if model_index.isValid():
+                if col in ['A_i','active']:
+                    continue
+                elif col in ['range']:
+                    try:
+                        data[col][rowindex] = int(value)
+                    except:
+                        pass
+                elif col in ['year','fm','fm_sig','age','age_sig']:
+                    try:
+                        data[col][rowindex] = float64(value)
+                        print(value, col, rowindex)
+                    except:
+                        pass
+                else:
 
-                    #model.setData(model_index, value, recalc=False)
-                    col = columns[colindex]
-                    print(col,value)
-                    if col in ['A_i','active']:
-                        continue
-                    elif col in ['range']:
-                        try:
-                            data[col][rowindex] = int(value)
-                        except:
-                            pass
-                    elif col in ['year','fm','fm_sig','age','age_sig']:
-                        try:
-                            data[col][rowindex] = float(value)
-                        except:
-                            pass
-                    else:
-                        data[col][rowindex] = value
-        #for key in data: data[key] = data[key][inverse_sortind]
-        model.layoutAboutToBeChanged.emit()
+                    data[col][rowindex] = value
+        inverse_sortind = argsort(sortind)
+        for key in data: data[key] = data[key][inverse_sortind]
+
         model.calc.wiggledata = data
         model.data = data
-        model.rowCount()
         model.sort(sort_column,order)
-        model.layoutChanged.emit()
 
-        #model.sort(sort_column, order)
-        model.calc.recalc_wiggledata(fm=True)
+        model.calc.recalc_wiggledata(fm=model.parent.ageBox.isChecked())
         model.parent.recalcFlag = True
         model.parent.recalcIndex = model.tabIndex
         model.parent.redraw()
