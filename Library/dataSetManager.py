@@ -132,10 +132,13 @@ class DataSetManager(QWidget):
     def setAgreementLabels(self):
         for i,curve in enumerate(self.calc.curves):
             if curve != 'None':
-                agreement = self.calc.data[curve]['A']*100
-                threshold = self.calc.data[curve]['A_n']*100
-                self.__dict__[f'agreementLabel{i}'].setText(f'{curve}: {agreement:.2f}%')
-                self.threshLabel.setText(f'threshold: {threshold:.2f}%')
+                try:
+                    agreement = self.calc.data[curve]['A']*100
+                    threshold = self.calc.data[curve]['A_n']*100
+                    self.__dict__[f'agreementLabel{i}'].setText(f'{curve}: {agreement:.2f}%')
+                    self.threshLabel.setText(f'threshold: {threshold:.2f}%')
+                except:
+                    self.__dict__[f'agreementLabel{i}'].setText('')
             else:
                 self.__dict__[f'agreementLabel{i}'].setText('')
 

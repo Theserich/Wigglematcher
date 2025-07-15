@@ -123,13 +123,11 @@ class CurveManager():
         newdict['bp'] = result_dict['bp']
         newdict['fm'] = exp(-result_dict['14C age']/8033)
         newdict['fm_sig'] = newdict['fm'] /8033*result_dict['Sigma1']
-        newdict[f'fm_{1}'] = newdict['fm']
-        newdict[f'fm_sig_{1}'] = newdict['fm_sig']
         savedict = {}
         for key in newdict:
             savedict[key] = list(newdict[key])
         self.data[savename] = newdict
-        for window_length in range(1, 10):
+        for window_length in range(1, 2):
             self.generate_averaged_curves(savename,window_length)
         with open(f'{self.curve_folder}{savename}.json', 'w', encoding='utf-8') as file:
             json.dump(savedict, file)

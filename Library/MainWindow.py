@@ -367,13 +367,13 @@ class WidgetMain(QMainWindow):
         if file_path:
             filebool = self.curveManager.load_Oxcal_file(file_path)
             if filebool:
+                for dataset in self.datasets:
+                    dataset.calc.curveData = self.curveManager
+                    dataset.calc.curves = self.curveManager.curves
+                    dataset.calc.recalc_all()
                 for i in range(self.Ncurves):
                     self.__dict__[f'curveBox{i}'].addItem(label)
                 index = self.curveBox0.findText(label)
-                for dataset in self.datasets:
-                    dataset.calc.curveData
-                    dataset.calc.curves = self.curveManager.curves
-                    dataset.calc.recalc_all()
                 if index != -1:  # -1 means not found
                     self.curveBox0.setCurrentIndex(index)
 
