@@ -41,9 +41,13 @@ class WidgetMain(QMainWindow):
             for i in range(self.Ncurves):
                 self.__dict__[f'curveBox{i}'].addItem(curve)
         for i,curve in enumerate(self.curveManager.curves):
-            index = self.__dict__[f'curveBox{i}'].findText(curve)
+            curvestring = curve
+            if curve is None:
+                curvestring = 'None'
+            index = self.__dict__[f'curveBox{i}'].findText(curvestring)
             if index != -1:  # -1 means not found
                 self.__dict__[f'curveBox{i}'].setCurrentIndex(index)
+
         #self.update_plot()
         self.ageBox.stateChanged.connect(self.changeToAge)
         self.addDatasetButton.clicked.connect(self.addDataset_tab)
@@ -61,6 +65,8 @@ class WidgetMain(QMainWindow):
     def changeCurves(self):
         for i in range(self.Ncurves):
             curve = self.__dict__[f'curveBox{i}'].currentText()
+            if curve == 'None':
+                curve = None
             self.curveManager.curves[i] = curve
             for dataset in self.datasets:
                 dataset.calc.curves[i] = curve
@@ -73,7 +79,7 @@ class WidgetMain(QMainWindow):
             self.curveManager.curve_windows[i] = window_length
             testkey = f'calendaryear_{window_length}'
             for curve in self.curveManager.curves:
-                if curve != 'None':
+                if curve is not None:
                     data =  self.curveManager.data[curve]
                     if testkey not in data:
                         self.curveManager.generate_averaged_curves(curve, window_length)

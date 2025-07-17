@@ -38,12 +38,12 @@ class MplCanvas(FigureCanvas):
         self.maxy = -inf
         self.miny = inf
         for i,curve in enumerate(self.curves):
-            if curve == 'None':
+            if curve is None:
                 continue
             for calc in self.calcs:
                 self.plot_calc(calc,i)
         for i, curve in enumerate(self.curves):
-            if curve == 'None':
+            if curve is None:
                 continue
             self.plotCurve(curve, color=self.curveColors[i], errorbar=False)
         try:

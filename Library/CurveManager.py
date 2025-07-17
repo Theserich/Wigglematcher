@@ -16,7 +16,7 @@ class CurveManager():
         self.curve_folder = 'Library\\Data\\Curves\\'
         self.syntherror = 1.5
         self.amp = 0.8
-        self.curves = ['intcal20', 'None']
+        self.curves = ['intcal20', None]
         self.curve_windows = [1, 1]
         self.load_all_curves()
         #for curve in self.data:

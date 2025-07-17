@@ -111,7 +111,7 @@ class DataSetManager(QWidget):
         progressbar = self.__dict__[self.buttonDict[button]['progressbar']]
         calc = self.calc
         index = self.buttonDict[button]['index']
-        if calc.curves[index] != 'None':
+        if calc.curves[index] is not None:
             widget.setEnabled(False)
             self.__dict__[button].setVisible(True)
             progressbar.setVisible(True)
@@ -131,7 +131,7 @@ class DataSetManager(QWidget):
 
     def setAgreementLabels(self):
         for i,curve in enumerate(self.calc.curves):
-            if curve != 'None':
+            if curve is not None:
                 try:
                     agreement = self.calc.data[curve]['A']*100
                     threshold = self.calc.data[curve]['A_n']*100

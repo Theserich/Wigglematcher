@@ -134,7 +134,7 @@ class MyTableModel(QAbstractTableModel):
         else:
             self.columns += ['year', 'fm', 'fm_sig', 'active']#,'range'
         for curve in self.calc.curves:
-            if curve != 'None':
+            if curve is not None:
                 key = f'{curve}A_i'
                 self.columns.append(key)
                 self.formats[key] = ['%.2f %%',100]

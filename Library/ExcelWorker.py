@@ -33,12 +33,12 @@ class ExcelWorker(QThread):
         for i,calc in enumerate(self.calcs):
             self.data[f'{i} {calc.dataName}'] = {}
             for j,curve in enumerate(self.curves):
-                if curve == 'None':
+                if curve is None:
                      continue
 
                 self.getCalcdata(calc, i,curve)
         for i, curve in enumerate(self.curves):
-            if curve == 'None':
+            if curve is None:
                 continue
 
             self.getCurveData(curve)

@@ -65,7 +65,7 @@ class Calculator:
         N = len(wiggleyears)
         shiftyears = self.wiggledata['dt']
         def process_curve(curve):
-            if curve == 'None':
+            if curve is None:
                 return curve, None
             if curve not in self.data:
                 self.data[curve] = {}
@@ -130,12 +130,12 @@ class Calculator:
         N = len(wiggleyears)
         shiftyears = self.wiggledata['dt']
         for curve in self.curves:
-            if curve == 'None':
+            if curve is None:
                 continue
             for range in uniqueranges:
                 self.curveData.generate_averaged_curves(curve,range)
         def process_curve(curve):
-            if curve == 'None':
+            if curve is None:
                 return curve, None
             if curve not in self.data:
                 self.data[curve] = {}
@@ -178,7 +178,7 @@ class Calculator:
         for curve in self.curves:
             if curve not in self.data:
                 self.data[curve] = {}
-            if curve == 'None':
+            if curve is None:
                 continue
             ps = self.data[curve]['ps']
             tyears = self.data[curve]['tyears']
@@ -278,7 +278,7 @@ class Calculator:
         for curve in self.curves:
             if curve not in self.data:
                 self.data[curve] = {}
-            if curve =='None':
+            if curve is None:
                 continue
             pt = self.data[curve]['probability']
             sortind = argsort(pt)[::-1]
