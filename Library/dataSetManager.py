@@ -61,11 +61,14 @@ class DataSetManager(QWidget):
         self.changing = False
         self.shiftEdit.valueChanged.connect(self.changeShift)
         self.offsetSlider.valueChanged.connect(self.changeOffset)
-        self.offsetEdit.valueChanged.connect(self.changeOffset)
-        self.offsetSigEdit.valueChanged.connect(self.changeOffsetSig)
+        self.offset.valueChanged.connect(self.changeOffset)
+        self.offset_sig.valueChanged.connect(self.changeOffsetSig)
         self.setAgreementLabels()
         self.tableView.resizeColumnsToContents()
         self.plotWorkers = []
+
+    def setup_offsets(self):
+        pass
 
     def changeOffset(self,value):
         widget = self.sender()
@@ -73,10 +76,10 @@ class DataSetManager(QWidget):
         if self.changing == False:
             self.changing = True
             if name == 'offsetSlider':
-                self.offsetEdit.setValue(value)
-            elif name == 'offsetEdit':
+                self.offset.setValue(value)
+            elif name == 'offset':
                 self.offsetSlider.setValue(int(value))
-            self.calc.offset = self.offsetEdit.value()
+            self.calc.offset = self.offset.value()
             self.widget.recalcFlag = True
             self.widget.recalcIndex = self.tabIndex
             self.widget.redraw()
@@ -184,7 +187,7 @@ class DataSetManager(QWidget):
         if 'offset_settings' not in self.calc.__dict__:
             self.calc.offset_settings = default_offset_settings
         else:
-            for key in ['offset','offset_sig']:
+            for key in default_offset_settings:
                 if key not in self.calc.offset_settings:
                     self.calc.offset_settings[key] = default_offset_settings[key]
         for key in settings:
