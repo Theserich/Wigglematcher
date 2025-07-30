@@ -64,12 +64,12 @@ class MainPLotWorker(QThread):
         window_length = self.curveManager.curve_windows[index]
 
         data = self.curveManager.data[curve]
-        x = data[f'calendaryear_{window_length}']
-        y = data[f'fm_{window_length}']
-        dy = data[f'fm_sig_{window_length}']
+        x = data[f'calendaryear']
+        y = data[f'fm']
+        dy = data[f'fm_sig']
         if self.ageplot:
             y = -8033*log(y)
-            dy = 8033/data[f'fm_{window_length}']*dy
+            dy = 8033/data[f'fm']*dy
         self.data['ax0fill'].append({'x':x,'y0':y-dy,'y1':y+dy,'color':color,'label':curve})
         #self.ax[0].fill_between(x, y - dy, y + dy, color=color, alpha=0.5, lw=0, label=curve)
         indexes = where((x>self.minx) & (x<self.maxx))

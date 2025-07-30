@@ -1,4 +1,4 @@
-from Library.dataMager import Calculator
+from Library.dataMager import Calculator,default_plot_settings,default_offset_settings
 from Library.tableModel import MyTableModel
 from PyQt5.QtWidgets import QTableView, QPushButton, QLineEdit, QWidget, QColorDialog, QGridLayout, QCheckBox
 from PyQt5.QtGui import QPalette
@@ -175,10 +175,21 @@ class DataSetManager(QWidget):
     def loadData(self):
         settings = read_settings(f'DataSettings\\Settings{self.tabIndex}')
         self.calc = pickle.load(open(f'{self.folder}{self.tabIndex}.pkl', 'rb'))
+        if 'plotsettings' not in self.calc.__dict__:
+            self.calc.plotsettings = default_plot_settings
+        else:
+            for key in default_plot_settings:
+                if key not in self.calc.plotsettings:
+                    self.calc.plotsettings[key] = default_plot_settings[key]
+        if 'offset_settings' not in self.calc.__dict__:
+            self.calc.offset_settings = default_offset_settings
+        else:
+            for key in ['offset','offset_sig']:
+                if key not in self.calc.offset_settings:
+                    self.calc.offset_settings[key] = default_offset_settings[key]
         for key in settings:
             self.__dict__[key] = settings[key]
             self.calc.plotsettings[key] = settings[key]
-
         self.calc.plotsettings['colors'] = self.colors
 
     def check_color(self):

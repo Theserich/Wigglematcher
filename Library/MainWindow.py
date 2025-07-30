@@ -283,7 +283,7 @@ class WidgetMain(QMainWindow):
             else:
                 x.spines['bottom'].set_visible(False)
 
-
+    @timer
     def redraw(self):
         self.tabindex = self.tabWidget.currentIndex()
         if self.tabindex != -1:

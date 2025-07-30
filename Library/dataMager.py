@@ -14,6 +14,8 @@ from joblib import Parallel, delayed
 from scipy.stats import norm
 from matplotlib import pyplot as plt
 
+default_plot_settings = {'dataName':'New Data','colors': ['C0','C0'],'plotbools': [True,True],'showfits':[True,False],'colorbools': [False,False],'plotbool':True,'buttonColors':['#ff5500','#000000'],'chronology':False}
+default_offset_settings = {'Manual':True,'offset':0,'offset_sig':0,'min':-100,'max':100,'step':1,'Gaussian':False,'mu':0,'sigma':50}
 
 class Calculator:
     def __init__(self,curveManager):
@@ -23,7 +25,8 @@ class Calculator:
         self.data = {}
         for curve in self.curves:
             self.data[curve] = {}
-        self.plotsettings = {'dataName':'New Data','colors': ['C0','C0'],'plotbools': [True,True],'showfits':[True,False],'colorbools': [False,False],'plotbool':True,'buttonColors':['#ff5500','#000000'],'chronology':False}
+        self.plotsettings = default_plot_settings
+        self.offset_settings = default_offset_settings
         self.gauss = False
         self.syntherror = 1.5
         self.amp = 0.8
