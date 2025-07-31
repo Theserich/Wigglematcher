@@ -9,10 +9,10 @@
     ],
     "fontsize": 12,
     "height": 25,
-    "windowheight": 987,
-    "windowwidth": 1680,
-    "posx": 34,
-    "posy": -8,
+    "windowheight": 921,
+    "windowwidth": 1601,
+    "posx": 24,
+    "posy": 20,
     "curves": [
         "ETHCal",
         "intcal20"

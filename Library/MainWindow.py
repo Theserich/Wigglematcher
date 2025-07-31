@@ -297,6 +297,7 @@ class WidgetMain(QMainWindow):
         self.progressBar.setVisible(True)
         self.progressBar.setRange(0, 0)
         self.threads.append(plotworker)
+
         plotworker.finished.connect(self.figure_updated)
         plotworker.start()
 

@@ -27,8 +27,10 @@ class DataSetManager(QWidget):
             self.colors = copy(self.widget.curveColors)
             self.calc.plotsettings['colors'] = self.colors
             self.buttonColors = self.calc.plotsettings['buttonColors']
+
         self.tabWidget = self.widget.tabWidget
         loadUi(self.widgetFile, self)
+        self.setup_offsets()
         self.tableModel = MyTableModel(self.calc, parent=self.widget,index=self.tabIndex)
         self.tableView.setModel(self.tableModel)
 
@@ -56,19 +58,48 @@ class DataSetManager(QWidget):
         for button in self.buttonDict:
             self.__dict__[self.buttonDict[button]['progressbar']].setVisible(False)
             self.__dict__[button].clicked.connect(lambda: self.plotGraph())
-        self.offsetSlider.setValue(int(self.calc.offset))
-        self.offsetSlider.setValue(int(self.calc.offset))
         self.changing = False
         self.shiftEdit.valueChanged.connect(self.changeShift)
         self.offsetSlider.valueChanged.connect(self.changeOffset)
-        self.offset.valueChanged.connect(self.changeOffset)
-        self.offset_sig.valueChanged.connect(self.changeOffsetSig)
         self.setAgreementLabels()
         self.tableView.resizeColumnsToContents()
         self.plotWorkers = []
 
+    def set_offsetValues(self):
+        self.changing = True
+
+        for key in ['min','max','step','offset','offset_sig','mu','sigma']:
+            self.calc.offset_settings[key] = self.__dict__[key].value()
+        if self.AutoOffset.isChecked():
+            self.calc.offset_settings['Manual'] = False
+        else:
+            self.calc.offset_settings['Manual'] = True
+        if self.GaussianPrior.isChecked():
+            self.calc.offset_settings['GaussianPrior'] = True
+        else:
+            self.calc.offset_settings['GaussianPrior'] = False
+
+        self.offsetSlider.setValue(int(self.calc.offset))
+        self.changing = False
+
+        self.widget.recalcFlag = True
+        self.widget.recalcIndex = self.tabIndex
+        self.widget.redraw()
+
     def setup_offsets(self):
-        pass
+        for key in ['min','max','step','offset','offset_sig','mu','sigma']:
+            self.__dict__[key].setValue(self.calc.offset_settings[key])
+            self.__dict__[key].valueChanged.connect(self.set_offsetValues)
+        if self.calc.offset_settings['Manual']:
+            self.ManualOffset.setChecked(True)
+        else:
+            self.AutoOffset.setChecked(True)
+        if self.calc.offset_settings['GaussianPrior']:
+            self.GaussianPrior.setChecked(True)
+        else:
+            self.UniformPrior.setChecked(True)
+        self.GaussianPrior.setChecked(True)
+        self.offsetSlider.setValue(int(self.calc.offset))
 
     def changeOffset(self,value):
         widget = self.sender()
@@ -79,7 +110,8 @@ class DataSetManager(QWidget):
                 self.offset.setValue(value)
             elif name == 'offset':
                 self.offsetSlider.setValue(int(value))
-            self.calc.offset = self.offset.value()
+            self.calc.offset = value
+            self.calc.offset_settings['offset'] = value
             self.widget.recalcFlag = True
             self.widget.recalcIndex = self.tabIndex
             self.widget.redraw()

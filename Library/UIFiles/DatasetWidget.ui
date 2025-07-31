@@ -263,7 +263,7 @@
        </widget>
       </item>
       <item row="0" column="0">
-       <widget class="QRadioButton" name="radioButton">
+       <widget class="QRadioButton" name="ManualOffset">
         <property name="text">
          <string>Manual Offset</string>
         </property>
@@ -283,7 +283,7 @@
        </widget>
       </item>
       <item row="2" column="0" colspan="3">
-       <widget class="QRadioButton" name="radioButton_2">
+       <widget class="QRadioButton" name="AutoOffset">
         <property name="text">
          <string>Automatic Offset</string>
         </property>
@@ -296,14 +296,14 @@
         </property>
         <layout class="QGridLayout" name="gridLayout_4">
          <item row="0" column="3">
-          <widget class="QRadioButton" name="radioButton_3">
+          <widget class="QRadioButton" name="UniformPrior">
            <property name="text">
             <string>Uniform Prior</string>
            </property>
           </widget>
          </item>
          <item row="2" column="3">
-          <widget class="QRadioButton" name="radioButton_4">
+          <widget class="QRadioButton" name="GaussianPrior">
            <property name="text">
             <string>Gaussian Prior</string>
            </property>

@@ -15,7 +15,7 @@ from scipy.stats import norm
 from matplotlib import pyplot as plt
 
 default_plot_settings = {'dataName':'New Data','colors': ['C0','C0'],'plotbools': [True,True],'showfits':[True,False],'colorbools': [False,False],'plotbool':True,'buttonColors':['#ff5500','#000000'],'chronology':False}
-default_offset_settings = {'Manual':True,'offset':0,'offset_sig':0,'min':-100,'max':100,'step':1,'Gaussian':False,'mu':0,'sigma':50}
+default_offset_settings = {'Manual':True,'offset':0,'offset_sig':0,'min':-100,'max':100,'step':1,'GaussianPrior':False,'mu':0,'sigma':50}
 
 class Calculator:
     def __init__(self,curveManager):
@@ -200,11 +200,75 @@ class Calculator:
             self.wiggledata[f'{curve}A_i'] = A_is
 
     def recalc_all(self):
-        self.calcOffset()
-        self.calc_probs()
-        #self.calc_probs_with_ranges()
-        self.calc_bayesian_prob()
-        self.calc_percentile_ranges()
+        self.offset = self.offset_settings['offset']
+        self.offset_sig = self.offset_settings['offset_sig']
+        if self.offset_settings['Manual']:
+            self.calcOffset()
+            self.calc_probs()
+            #self.calc_probs_with_ranges()
+            self.calc_bayesian_prob()
+            self.calc_percentile_ranges()
+        else:
+            self.calc_probs_with_offsetfit()
+
+    def calc_probs_with_offsetfit(self):
+        self.curves = self.curveData.curves
+        wiggleyears = self.wiggledata['year']
+        wigglefms = self.wiggledata['fm']
+        wigglefms_sig = self.wiggledata['fm_sig']
+        N = len(wiggleyears)
+        shiftyears = self.wiggledata['dt']
+        for curve in self.curves:
+            if curve is None:
+                continue
+            len_ty = len(tyears)
+            len_wig = len(wiggleyears)
+            len_off = len(testoffsets)
+            if offsetprior is None:
+                offsetprior = norm.pdf(testoffsets, loc=0, scale=50)
+            likelyhoods = np.zeros((len_off, len_ty))
+            ps_likelihood = np.empty((len_off, len_wig, len_ty))
+            pss2 = np.empty((len_off, len_wig, len_ty))
+            tyears = np.asarray(tyears)
+            for j, offset in enumerate(testoffsets):
+                ps = np.empty((len_wig, len_ty))
+                for i in range(len_wig):
+                    dt = shiftyears[i]
+                    age = -8033 * np.log(wigglefms[i]) + offset
+                    Ri = np.exp(-age / 8033)
+                    dRi = wigglefmsigs[i]
+                    shifted_years = tyears + dt
+                    R = ethcalfm(shifted_years)
+                    dR = ethcalfm_sig(shifted_years)
+                    denom = 2 * dRi ** 2 + 2 * dR ** 2
+                    diff = Ri - R
+                    p_i = np.exp(-diff ** 2 / denom) / (dRi ** 2 + dR ** 2) ** 0.5
+                    p_i = p_i / np.sum(p_i)
+                    ps_likelihood[j, i] = p_i * offsetprior[j]
+                    # ps[i,:] = np.log(pi)-np.log(sum_pi)+np.log(offsetprior[j])
+                    ps[i, :] = -0.5 * ((Ri - R) ** 2 / (dRi ** 2 + dR ** 2)) - 0.5 * np.log(
+                        2 * np.pi * (dRi ** 2 + dR ** 2)) + np.log(offsetprior[j])
+                # pt = logsumexp(ps, axis=0)
+                pt = np.sum(ps, axis=0)
+                likelyhoods[j] = pt
+            likelyhoods = exp(likelyhoods)  #
+            weighted_likelihood = likelyhoods  # offsetprior[:, np.newaxis]
+            posterior_age = npsum(weighted_likelihood, axis=0)
+            posterior_age /= npsum(posterior_age)
+            posterior_offset = npsum(weighted_likelihood, axis=1)
+            posterior_offset /= npsum(posterior_offset)
+            dt_step = npabs(tyears[1] - tyears[0])
+
+            ps = npsum(ps_likelihood, axis=0)
+            A_is = npempty(len_wig)
+            for i in range(len_wig):
+                p = ps[i] / sum(ps[i])
+                a = npsum(posterior_age * p) * dt_step
+                b = npsum(p ** 2) * dt_step
+                A_is[i] = a / b
+            A = prod(A_is) ** (1 / sqrt(len_wig))
+            A_n = 1 / (2 * len_wig) ** 0.5
+
 
     def calcOffset(self):
         age_corr = -8033*log(self.wiggledata['fm'])+self.offset
