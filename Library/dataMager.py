@@ -1,6 +1,6 @@
 import copy
 from Library.HelperFunctions import *
-from numpy import array, exp, log, arange, nan, zeros, random, ones, sin, where,full, sqrt, argsort, unique, cumsum, prod, float64, sum as npsum
+from numpy import array, exp, log, arange, nan, zeros, random, ones, sin, where,full, sqrt, argsort, unique, cumsum, prod, float64, sum as npsum, empty, asarray, pi, abs as npabs
 from scipy.stats import chi2
 import pathlib
 from PyQt5.QtWidgets import QFileDialog
@@ -216,40 +216,63 @@ class Calculator:
         wiggleyears = self.wiggledata['year']
         wigglefms = self.wiggledata['fm']
         wigglefms_sig = self.wiggledata['fm_sig']
+        mini = self.offset_settings['min']
+        maxi = self.offset_settings['max']
+        step = self.offset_settings['step']
+        mu = self.offset_settings['mu']
+        sigma = self.offset_settings['sigma']
+        testoffsets = arange(mini, maxi, step)
         N = len(wiggleyears)
+        if self.offset_settings['GaussianPrior']:
+            offsetprior = norm.pdf(testoffsets, loc=mu, scale=sigma)
+            offsetprior /= offsetprior.sum()
+        else:
+            offsetprior = ones(len(testoffsets)) / len(testoffsets)
         shiftyears = self.wiggledata['dt']
         for curve in self.curves:
             if curve is None:
                 continue
+            maxsig = 10 * max(wigglefms_sig)
+            minfmsearch = min(wigglefms - maxsig)
+            maxfmsearch = max(wigglefms + maxsig)
+            fms = self.curveData.data[curve]['fm']
+            fm_sigs = self.curveData.data[curve]['fm_sig']
+            t = self.curveData.data[curve]['calendaryear']
+            indexes = where((fms >= minfmsearch) & (fms < maxfmsearch))[0]
+            indexes = arange(min(indexes), max(indexes), 1)
+            years = t[indexes]
+            minyear, maxyear = min(years) - min(shiftyears), max(years) - max(shiftyears)
+            tyears = arange(minyear, maxyear, 1)
+            self.data[curve]['tyears'] = tyears
+            curvefm = interp1d(t, fms, assume_sorted=True)
+            curvefm_sig = interp1d(t, fm_sigs, assume_sorted=True)
             len_ty = len(tyears)
             len_wig = len(wiggleyears)
             len_off = len(testoffsets)
-            if offsetprior is None:
-                offsetprior = norm.pdf(testoffsets, loc=0, scale=50)
-            likelyhoods = np.zeros((len_off, len_ty))
-            ps_likelihood = np.empty((len_off, len_wig, len_ty))
-            pss2 = np.empty((len_off, len_wig, len_ty))
-            tyears = np.asarray(tyears)
+            likelyhoods = zeros((len_off, len_ty))
+            ps_likelihood = empty((len_off, len_wig, len_ty))
+            pss2 = empty((len_off, len_wig, len_ty))
+            tyears = asarray(tyears)
             for j, offset in enumerate(testoffsets):
-                ps = np.empty((len_wig, len_ty))
+                ps = empty((len_wig, len_ty))
                 for i in range(len_wig):
                     dt = shiftyears[i]
-                    age = -8033 * np.log(wigglefms[i]) + offset
-                    Ri = np.exp(-age / 8033)
-                    dRi = wigglefmsigs[i]
+                    age = -8033 * log(wigglefms[i]) + offset
+                    Ri = exp(-age / 8033)
+                    dRi = wigglefms_sig[i]
                     shifted_years = tyears + dt
-                    R = ethcalfm(shifted_years)
-                    dR = ethcalfm_sig(shifted_years)
+                    R = curvefm(shifted_years)
+                    dR = curvefm_sig(shifted_years)
                     denom = 2 * dRi ** 2 + 2 * dR ** 2
                     diff = Ri - R
-                    p_i = np.exp(-diff ** 2 / denom) / (dRi ** 2 + dR ** 2) ** 0.5
-                    p_i = p_i / np.sum(p_i)
+                    p_i = exp(-diff ** 2 / denom) / (dRi ** 2 + dR ** 2) ** 0.5
+                    p_i = p_i / npsum(p_i)
                     ps_likelihood[j, i] = p_i * offsetprior[j]
                     # ps[i,:] = np.log(pi)-np.log(sum_pi)+np.log(offsetprior[j])
-                    ps[i, :] = -0.5 * ((Ri - R) ** 2 / (dRi ** 2 + dR ** 2)) - 0.5 * np.log(
-                        2 * np.pi * (dRi ** 2 + dR ** 2)) + np.log(offsetprior[j])
+                    ps[i, :] = -0.5 * ((Ri - R) ** 2 / (dRi ** 2 + dR ** 2)) - 0.5 * log(
+                        2 * pi * (dRi ** 2 + dR ** 2)) + log(offsetprior[j])
                 # pt = logsumexp(ps, axis=0)
-                pt = np.sum(ps, axis=0)
+                pt = npsum(ps, axis=0)
                 likelyhoods[j] = pt
             likelyhoods = exp(likelyhoods)  #
             weighted_likelihood = likelyhoods  # offsetprior[:, np.newaxis]
@@ -258,9 +281,8 @@ class Calculator:
             posterior_offset = npsum(weighted_likelihood, axis=1)
             posterior_offset /= npsum(posterior_offset)
             dt_step = npabs(tyears[1] - tyears[0])
-
             ps = npsum(ps_likelihood, axis=0)
-            A_is = npempty(len_wig)
+            A_is = empty(len_wig)
             for i in range(len_wig):
                 p = ps[i] / sum(ps[i])
                 a = npsum(posterior_age * p) * dt_step
@@ -268,7 +290,6 @@ class Calculator:
                 A_is[i] = a / b
             A = prod(A_is) ** (1 / sqrt(len_wig))
             A_n = 1 / (2 * len_wig) ** 0.5
-
 
     def calcOffset(self):
         age_corr = -8033*log(self.wiggledata['fm'])+self.offset
