@@ -1,15 +1,15 @@
 {
-    "dataName": "VrbnikAll",
+    "dataName": "testdata",
     "colors": [
-        "#aa55ff",
+        "#ff5500",
         "#000000"
     ],
     "colorbools": [
-        true,
+        false,
         false
     ],
     "buttonColors": [
-        "#aa55ff",
+        "#ff5500",
         "#000000"
     ],
     "plotbool": true,

@@ -11,8 +11,8 @@
     "height": 25,
     "windowheight": 987,
     "windowwidth": 1680,
-    "posx": 34,
-    "posy": -8,
+    "posx": 160,
+    "posy": 66,
     "curves": [
         "ETHCal",
         "intcal20"

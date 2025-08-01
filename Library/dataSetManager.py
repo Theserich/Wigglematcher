@@ -177,23 +177,30 @@ class DataSetManager(QWidget):
 
     def loadData(self):
         settings = read_settings(f'DataSettings\\Settings{self.tabIndex}')
-        self.calc = pickle.load(open(f'{self.folder}{self.tabIndex}.pkl', 'rb'))
-        if 'plotsettings' not in self.calc.__dict__:
-            self.calc.plotsettings = default_plot_settings
-        else:
-            for key in default_plot_settings:
-                if key not in self.calc.plotsettings:
-                    self.calc.plotsettings[key] = default_plot_settings[key]
-        if 'offset_settings' not in self.calc.__dict__:
-            self.calc.offset_settings = default_offset_settings
-        else:
-            for key in default_offset_settings:
-                if key not in self.calc.offset_settings:
-                    self.calc.offset_settings[key] = default_offset_settings[key]
-        for key in settings:
-            self.__dict__[key] = settings[key]
-            self.calc.plotsettings[key] = settings[key]
-        self.calc.plotsettings['colors'] = self.colors
+        try:
+            self.calc = pickle.load(open(f'{self.folder}{self.tabIndex}.pkl', 'rb'))
+            if 'plotsettings' not in self.calc.__dict__:
+                self.calc.plotsettings = default_plot_settings
+            else:
+                for key in default_plot_settings:
+                    if key not in self.calc.plotsettings:
+                        self.calc.plotsettings[key] = default_plot_settings[key]
+            if 'offset_settings' not in self.calc.__dict__:
+                self.calc.offset_settings = default_offset_settings
+            else:
+                for key in default_offset_settings:
+                    if key not in self.calc.offset_settings:
+                        self.calc.offset_settings[key] = default_offset_settings[key]
+            for key in settings:
+                self.__dict__[key] = settings[key]
+                self.calc.plotsettings[key] = settings[key]
+            self.calc.plotsettings['colors'] = self.colors
+        except:
+            self.calc = Calculator(self.widget.curveManager)
+            self.calc.dataName = f'Tab {self.tabIndex}'
+            self.colors = copy(self.widget.curveColors)
+            self.calc.plotsettings['colors'] = self.colors
+            self.buttonColors = self.calc.plotsettings['buttonColors']
 
     def check_color(self):
         widget = self.sender()
