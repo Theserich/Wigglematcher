@@ -334,6 +334,9 @@ class WidgetMain(QMainWindow):
         self.move(posx, posy)
         self.curveColors = self.settings['curveColors']
         self.curveManager.curves = self.settings['curves']
+        for i,curve in enumerate(self.curveManager.curves):
+            if curve == 'None':
+                self.curveManager.curves[i] = None
         folder_path   = self.starfolder + 'DataSettings'
         pkl_files = [f for f in os.listdir(folder_path) if f.endswith(".pkl")]
         self.datasets = []

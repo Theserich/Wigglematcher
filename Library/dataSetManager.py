@@ -1,6 +1,6 @@
 from Library.dataMager import Calculator,default_plot_settings,default_offset_settings
 from Library.tableModel import MyTableModel
-from PyQt5.QtWidgets import QTableView, QPushButton, QLineEdit, QWidget, QColorDialog, QGridLayout, QCheckBox
+from PyQt5.QtWidgets import QTableView, QPushButton, QLineEdit, QWidget, QColorDialog, QGridLayout, QCheckBox,QRadioButton,QButtonGroup
 from PyQt5.QtGui import QPalette
 from Library.comset import *
 import pickle
@@ -47,6 +47,8 @@ class DataSetManager(QWidget):
         self.ChronoCheck.clicked.connect(self.showChronology)
         self.plotCheckBox.clicked.connect(self.checkDataPLot)
         self.deleteButton.clicked.connect(self.remove_dataset)
+        self.AutoOffset.clicked.connect(self.set_offsetValues)
+        self.ManualOffset.clicked.connect(self.set_offsetValues)
         self.loadButton.clicked.connect(lambda: self.calc.load_data(self))
         self.addButton.clicked.connect(self.tableModel.addDate)
         self.tableView.clicked.connect(self.tableModel.tableClicked)
@@ -66,8 +68,8 @@ class DataSetManager(QWidget):
         self.plotWorkers = []
 
     def set_offsetValues(self):
-        self.changing = True
-
+        if self.changing == True:
+            return
         for key in ['min','max','step','offset','offset_sig','mu','sigma']:
             self.calc.offset_settings[key] = self.__dict__[key].value()
         if self.AutoOffset.isChecked():
@@ -78,13 +80,10 @@ class DataSetManager(QWidget):
             self.calc.offset_settings['GaussianPrior'] = True
         else:
             self.calc.offset_settings['GaussianPrior'] = False
-
-        self.offsetSlider.setValue(int(self.calc.offset))
-        self.changing = False
-
         self.widget.recalcFlag = True
         self.widget.recalcIndex = self.tabIndex
         self.widget.redraw()
+        self.changing = False
 
     def setup_offsets(self):
         for key in ['min','max','step','offset','offset_sig','mu','sigma']:
@@ -98,6 +97,11 @@ class DataSetManager(QWidget):
             self.GaussianPrior.setChecked(True)
         else:
             self.UniformPrior.setChecked(True)
+
+        self.button_group = QButtonGroup(self)
+        self.button_group.setExclusive(True)  # This is actually the default
+        self.button_group.addButton(self.ManualOffset)
+        self.button_group.addButton(self.AutoOffset)
         self.GaussianPrior.setChecked(True)
         self.offsetSlider.setValue(int(self.calc.offset))
 

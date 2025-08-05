@@ -1,6 +1,6 @@
 import copy
 from Library.HelperFunctions import *
-from numpy import array, exp, log, arange, nan, zeros, random, ones, sin, where,full, sqrt, argsort, unique, cumsum, prod, float64, sum as npsum, empty, asarray, pi, abs as npabs
+from numpy import array, exp, log, arange, nan, zeros, random, ones, sin, where,full, sqrt, argsort, unique, cumsum, prod, float64, sum as npsum, empty, asarray, pi, abs as npabs, argmax,searchsorted
 from scipy.stats import chi2
 import pathlib
 from PyQt5.QtWidgets import QFileDialog
@@ -58,69 +58,6 @@ class Calculator:
         else:
             self.wiggledata['dt'] = self.wiggledata['year']-max(self.wiggledata['year'])
 
-
-    @timer
-    def calc_probs(self):
-        self.curves = self.curveData.curves
-        wiggleyears = self.wiggledata['year']
-        wigglefms = self.wiggledata['fm_corr']
-        wigglefms_sig = self.wiggledata['fm_sig_corr']
-        N = len(wiggleyears)
-        shiftyears = self.wiggledata['dt']
-        def process_curve(curve):
-            if curve is None:
-                return curve, None
-            if curve not in self.data:
-                self.data[curve] = {}
-            if len(wigglefms_sig) == 0:
-                self.data[curve]['tyears'] = full(2,nan)
-                self.data[curve]['ps'] = full(shape=(2,N),fill_value=nan)
-                return curve, self.data[curve]
-            maxsig = 10*max(wigglefms_sig)
-            minfmsearch = min(wigglefms - maxsig)
-            maxfmsearch = max(wigglefms + maxsig)
-            fms = self.curveData.data[curve]['fm']
-            fm_sigs = self.curveData.data[curve]['fm_sig']
-            t = self.curveData.data[curve]['calendaryear']
-            indexes = where((fms >= minfmsearch) & (fms < maxfmsearch))[0]
-            if len(indexes) == 0:
-                self.data[curve]['tyears'] = full(2,nan)
-                self.data[curve]['ps'] = full(shape=(2,N),fill_value=nan)
-                return curve, self.data[curve]
-            indexes = arange(min(indexes), max(indexes), 1)
-            years = t[indexes]
-            if len(years) == 0:
-                self.data[curve]['tyears'] = full(2,nan)
-                self.data[curve]['ps'] = full(shape=(2,N),fill_value=nan)
-                return curve, self.data[curve]
-            minyear, maxyear = min(years) - min(shiftyears), max(years) - max(shiftyears)
-            tyears = arange(minyear, maxyear, 1)
-            self.data[curve]['tyears'] = tyears
-            curvefm = interp1d(t, fms, assume_sorted=True)
-            curvefm_sig = interp1d(t, fm_sigs, assume_sorted=True)
-            M = len(tyears)
-            Ri = ones((N, M)) * wigglefms[:, None]
-            dRi = ones((N, M)) * wigglefms_sig[:, None]
-            dR = zeros((N, M))
-            R = zeros((N, M))
-            ps = zeros((N, M), dtype=float64)
-            R[:] = curvefm(tyears + shiftyears[:, None])
-            dR[:] = curvefm_sig(tyears + shiftyears[:, None])
-            dRi2 = dRi ** 2
-            dR2 = dR ** 2
-            denom = (2 * dRi2 + 2 * dR2) ** 0.5
-            ps[:] = exp(-((Ri - R) ** 2) / (2 * dRi2 + 2 * dR2)) / denom
-            ps /= ps.sum(axis=1, keepdims=True)
-            self.data[curve]['ps'] = ps
-            return curve, self.data[curve]
-        for curve in self.curves:
-            c, data = process_curve(curve)
-            if data is not None:
-                self.data[curve] = data
-        #results = Parallel(n_jobs=-1, backend='threading')(delayed(process_curve)(curve) for curve in self.curves)
-        #for curve, data in results:
-        #    if data is not None:
-        #        self.data[curve] = data
 
     @timer
     def calc_probs_with_ranges(self):
@@ -198,6 +135,7 @@ class Calculator:
             self.data[curve]['A'] = A
             self.data[curve]['A_n'] = A_n
             self.wiggledata[f'{curve}A_i'] = A_is
+            self.data[curve]['Offset'] = self.offset
 
     def recalc_all(self):
         self.offset = self.offset_settings['offset']
@@ -210,7 +148,9 @@ class Calculator:
             self.calc_percentile_ranges()
         else:
             self.calc_probs_with_offsetfit()
+            self.calc_percentile_ranges()
 
+    @timer
     def calc_probs_with_offsetfit(self):
         self.curves = self.curveData.curves
         wiggleyears = self.wiggledata['year']
@@ -251,7 +191,6 @@ class Calculator:
             len_off = len(testoffsets)
             likelyhoods = zeros((len_off, len_ty))
             ps_likelihood = empty((len_off, len_wig, len_ty))
-            pss2 = empty((len_off, len_wig, len_ty))
             tyears = asarray(tyears)
             for j, offset in enumerate(testoffsets):
                 ps = empty((len_wig, len_ty))
@@ -290,16 +229,102 @@ class Calculator:
                 A_is[i] = a / b
             A = prod(A_is) ** (1 / sqrt(len_wig))
             A_n = 1 / (2 * len_wig) ** 0.5
+            self.data[curve]['probability'] = posterior_age
+            self.data[curve]['ps'] = ps
+            self.data[curve]['A'] = A
+            self.data[curve]['A_n'] = A_n
+            self.data[curve]['offsetprob'] = posterior_offset
+            self.data[curve]['offsetps'] = ps_likelihood
+            self.wiggledata[f'{curve}A_i'] = A_is
+            offset = testoffsets[argmax(posterior_offset)]
+            cdf = cumsum(posterior_offset)
+            offset_sig = testoffsets[searchsorted(cdf, 0.84)]-testoffsets[searchsorted(cdf, 0.16)]
+            age_corr = -8033 * log(self.wiggledata['fm']) + offset
+            age_sig = 8033 / self.wiggledata['fm'] * self.wiggledata['fm_sig']
+            sig_corr = (age_sig ** 2 + offset_sig ** 2) ** 0.5
+            self.data[curve]['fm_corr'] = exp(-age_corr / 8033)
+            self.data[curve]['fm_sig_corr'] = self.data[curve]['fm_corr']  / 8033 * sig_corr
+            self.data[curve]['Offset'] = offset
+            self.data[curve]['Offset_sig'] = offset_sig
+            print(offset_sig)
+
+
+
+    @timer
+    def calc_probs(self):
+        self.curves = self.curveData.curves
+        wiggleyears = self.wiggledata['year']
+        wigglefms = self.wiggledata['fm_corr']
+        wigglefms_sig = self.wiggledata['fm_sig_corr']
+        N = len(wiggleyears)
+        shiftyears = self.wiggledata['dt']
+
+        def process_curve(curve):
+            if curve is None:
+                return curve, None
+            if curve not in self.data:
+                self.data[curve] = {}
+            if len(wigglefms_sig) == 0:
+                self.data[curve]['tyears'] = full(2, nan)
+                self.data[curve]['ps'] = full(shape=(2, N), fill_value=nan)
+                return curve, self.data[curve]
+            maxsig = 10 * max(wigglefms_sig)
+            minfmsearch = min(wigglefms - maxsig)
+            maxfmsearch = max(wigglefms + maxsig)
+            fms = self.curveData.data[curve]['fm']
+            fm_sigs = self.curveData.data[curve]['fm_sig']
+            t = self.curveData.data[curve]['calendaryear']
+            indexes = where((fms >= minfmsearch) & (fms < maxfmsearch))[0]
+            if len(indexes) == 0:
+                self.data[curve]['tyears'] = full(2, nan)
+                self.data[curve]['ps'] = full(shape=(2, N), fill_value=nan)
+                return curve, self.data[curve]
+            indexes = arange(min(indexes), max(indexes), 1)
+            years = t[indexes]
+            if len(years) == 0:
+                self.data[curve]['tyears'] = full(2, nan)
+                self.data[curve]['ps'] = full(shape=(2, N), fill_value=nan)
+                return curve, self.data[curve]
+            minyear, maxyear = min(years) - min(shiftyears), max(years) - max(shiftyears)
+            tyears = arange(minyear, maxyear, 1)
+            self.data[curve]['tyears'] = tyears
+            curvefm = interp1d(t, fms, assume_sorted=True)
+            curvefm_sig = interp1d(t, fm_sigs, assume_sorted=True)
+            M = len(tyears)
+            Ri = ones((N, M)) * wigglefms[:, None]
+            dRi = ones((N, M)) * wigglefms_sig[:, None]
+            dR = zeros((N, M))
+            R = zeros((N, M))
+            ps = zeros((N, M), dtype=float64)
+            R[:] = curvefm(tyears + shiftyears[:, None])
+            dR[:] = curvefm_sig(tyears + shiftyears[:, None])
+            dRi2 = dRi ** 2
+            dR2 = dR ** 2
+            denom = (2 * dRi2 + 2 * dR2) ** 0.5
+            ps[:] = exp(-((Ri - R) ** 2) / (2 * dRi2 + 2 * dR2)) / denom
+            ps /= ps.sum(axis=1, keepdims=True)
+            self.data[curve]['ps'] = ps
+            return curve, self.data[curve]
+
+        for curve in self.curves:
+            c, data = process_curve(curve)
+            if data is not None:
+                self.data[curve] = data
 
     def calcOffset(self):
         age_corr = -8033*log(self.wiggledata['fm'])+self.offset
         age_sig = 8033/self.wiggledata['fm']*self.wiggledata['fm_sig']
         sig_corr = (age_sig**2+self.offset_sig**2)**0.5
+
         self.wiggledata['fm_corr'] = exp(-age_corr/8033)
         self.wiggledata['fm_sig_corr'] = self.wiggledata['fm_corr']/8033*sig_corr
         self.wiggleyears = self.wiggledata['year'][self.wiggledata['active']]
         self.wigglefms = self.wiggledata['fm_corr'][self.wiggledata['active']]
         self.wigglefms_sig = self.wiggledata['fm_sig_corr'][self.wiggledata['active']]
+        for curve in self.curves:
+            if curve is not None:
+                self.data[curve]['fm_corr'] = exp(-age_corr / 8033)
+                self.data[curve]['fm_sig_corr'] = self.wiggledata['fm_corr'] / 8033 * sig_corr
 
     def load_data(self,dataSetManager):
         start_folder = 'Library\\Data\\Wiggledata'

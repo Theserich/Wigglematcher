@@ -33,8 +33,16 @@ class MainPLotWorker(QThread):
         if self.recalculate and self.recalcindex is None:
             for dataset in self.datasets:
                     dataset.calc.recalc_all()
+                    dataset.changing = True
+                    dataset.offset.setValue(dataset.calc.offset)
+                    dataset.offsetSlider.setValue(int(dataset.calc.offset))
+                    dataset.changing = False
         elif self.recalculate:
             self.datasets[self.recalcindex].calc.recalc_all()
+            self.datasets[self.recalcindex].changing = True
+            self.datasets[self.recalcindex].offset.setValue(self.datasets[self.recalcindex].calc.offset)
+            self.datasets[self.recalcindex].offsetSlider.setValue(int(self.datasets[self.recalcindex].calc.offset))
+            self.datasets[self.recalcindex].changing = False
         for dataset in self.datasets:
             calc = dataset.calc
             self.calcs.append(calc)
@@ -62,7 +70,6 @@ class MainPLotWorker(QThread):
 
     def plotCurve(self, curve,index, errorbar=False, color='C0'):
         window_length = self.curveManager.curve_windows[index]
-
         data = self.curveManager.data[curve]
         x = data[f'calendaryear']
         y = data[f'fm']
@@ -83,7 +90,7 @@ class MainPLotWorker(QThread):
 
     def plot_calc(self,calc,index):
         curve = self.curves[index]
-        if calc.plotsettings['plotbool'] == False:
+        if calc.plotsettings['plotbool'] == False or curve is None:
             return
         #ax1 = self.ax[1]
         color = calc.plotsettings['colors'][index]
@@ -99,8 +106,8 @@ class MainPLotWorker(QThread):
             minx = min(x)
             if calc.plotsettings['plotbool'] and calc.plotsettings['showfits'][index]:
 
-                y = calc.wigglefms
-                dy = calc.wigglefms_sig
+                y = calc.data[curve]['fm_corr'][calc.wiggledata['active']]
+                dy = calc.data[curve]['fm_sig_corr'][calc.wiggledata['active']]
                 if self.ageplot:
                     y = -8033 * log(y)
                     dy = 8033 / calc.wigglefms * dy

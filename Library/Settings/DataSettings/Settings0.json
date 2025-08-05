@@ -1,15 +1,15 @@
 {
     "dataName": "testdata",
     "colors": [
-        "#ff5500",
+        "#aa55ff",
         "#000000"
     ],
     "colorbools": [
-        false,
+        true,
         false
     ],
     "buttonColors": [
-        "#ff5500",
+        "#aa55ff",
         "#000000"
     ],
     "plotbool": true,

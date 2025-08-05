@@ -11,11 +11,11 @@
     "height": 25,
     "windowheight": 921,
     "windowwidth": 1601,
-    "posx": 24,
-    "posy": 20,
+    "posx": -15,
+    "posy": 57,
     "curves": [
         "ETHCal",
-        "intcal20"
+        "None"
     ],
     "curveColors": [
         "#ff5500",
