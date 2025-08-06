@@ -13,15 +13,13 @@ from Library.timer import timer
 
 class CurveManager():
     def __init__(self):
-        self.curve_folder = 'Library\\Data\\Curves\\'
+        self.curve_folder = Path('Library/Data/Curves')
+        self.curve_folder.mkdir(parents=True, exist_ok=True)
         self.syntherror = 1.5
         self.amp = 0.8
         self.curves = ['intcal20', None]
         self.curve_windows = [1, 1]
         self.load_all_curves()
-        #for curve in self.data:
-        #    for window_length in range(1,10):
-        #        self.generate_averaged_curves(curve,window_length)
 
     def generate_averaged_curves(self,curve,window_length):
         if f'fm_{window_length}' not in self.data[curve]:
@@ -53,7 +51,7 @@ class CurveManager():
 
 
     def load_all_curves(self):
-        folder = 'Library\\Data\\Curves\\'
+        folder = Path('Library/Data/Curves')
         files = list(Path(folder).glob('*.json'))
         self.data = {}
         for file in files:
@@ -72,16 +70,18 @@ class CurveManager():
             savedata = {}
             for key in data:
                 savedata[key] = list(data[key])
-            with open(f'{folder}{curve}.json', 'wb') as file:
+            with open(Path(f'{folder}/{curve}.json'), 'wb') as file:
                 json.dump(data, file)
 
-    def save_curve(self,curve):
-        folder = 'Library\\Data\\Curves\\'
+    def save_curve(self, curve):
+        folder = Path('Library') / 'Data' / 'Curves'
+        folder.mkdir(parents=True, exist_ok=True)  # Ensure directory exists
+
         data = self.data[curve]
-        savedata = {}
-        for key in data:
-            savedata[key] = list(data[key])
-        with open(f'{folder}{curve}.json', 'w', encoding='utf-8') as file:
+        savedata = {key: list(data[key]) for key in data}
+
+        file_path = folder / f'{curve}.json'
+        with file_path.open('w', encoding='utf-8') as file:
             json.dump(savedata, file)
 
     def load_Oxcal_file(self,file_path):
@@ -126,15 +126,14 @@ class CurveManager():
         savedict = {}
         for key in newdict:
             savedict[key] = list(newdict[key])
-        self.data[savename] = newdict
-        for window_length in range(1, 2):
-            self.generate_averaged_curves(savename,window_length)
-        with open(f'{self.curve_folder}{savename}.json', 'w', encoding='utf-8') as file:
+        file_path = Path(self.curve_folder) / f"{savename}.json"
+        file_path.parent.mkdir(parents=True, exist_ok=True)  # Ensure folder exists
+        with file_path.open('w', encoding='utf-8') as file:
             json.dump(savedict, file)
         return True
 
     def load_excel_curve(self, widget):
-        start_folder = 'Library\\Data\\ExcelCurves'
+        start_folder = Path('Library/Data/ExcelCurves')
         file_path, _ = QFileDialog.getOpenFileName(widget, "Open File", start_folder,
                                                    "All Files (*);;Excel files(*.xlsx)")
         label = Path(file_path).stem
@@ -195,7 +194,9 @@ class CurveManager():
             dataset.calc.curveData = self
         widget.recalcFlag = True
 
-        with open(f'{self.curve_folder}{label}.json', 'w') as file:
+        file_path = Path(self.curve_folder) / f"{label}.json"
+        file_path.parent.mkdir(parents=True, exist_ok=True)  # Ensure directory exists
+        with file_path.open('w', encoding='utf-8') as file:
             json.dump(savedata, file)
         for i in range(widget.Ncurves):
             widget.__dict__[f'curveBox{i}'].addItem(label)

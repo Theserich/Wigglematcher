@@ -11,25 +11,17 @@ from matplotlib import pyplot as plt
 from Library.PlotWorker import PLotWorker,PlotWindow
 from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5.QtCore import QTimer
-
+from pathlib import Path
 
 
 class DataSetManager(QWidget):
     def __init__(self,widget,index,loadData=False):
         super().__init__()
-        self.folder = 'Library\\Settings\\DataSettings\\'
-        self.widgetFile = 'Library\\UIFiles\\DatasetWidget.ui'
+        self.folder = Path('Library/Settings/DataSettings/')
+        self.widgetFile = Path('Library/UIFiles/DatasetWidget.ui')
         self.tabIndex = index
         self.widget = widget
-        if loadData:
-            self.loadData()
-        else:
-            self.calc = Calculator(widget.curveManager)
-            self.calc.dataName = f'Tab {index}'
-            self.colors = copy(self.widget.curveColors)
-            self.calc.plotsettings['colors'] = self.colors
-            self.buttonColors = self.calc.plotsettings['buttonColors']
-
+        self.loadData()
         self.tabWidget = self.widget.tabWidget
         loadUi(self.widgetFile, self)
         self.setup_offsets()
@@ -43,14 +35,13 @@ class DataSetManager(QWidget):
             self.__dict__[f'colorCheck{i}'].clicked.connect(self.check_color)
             self.__dict__[f'showCheck{i}'].setChecked(show)
             self.__dict__[f'showCheck{i}'].clicked.connect(self.check_plot)
-            self.__dict__[f'colorButton{i}'].setStyleSheet(f"background-color: {self.buttonColors[i]};")
+            self.__dict__[f'colorButton{i}'].setStyleSheet(f"background-color: {self.calc.plotsettings['buttonColors'][i]};")
             self.__dict__[f'colorButton{i}'].clicked.connect(self.open_color_dialog)
         self.ChronoCheck.setChecked(self.calc.plotsettings['chronology'])
         self.ChronoCheck.clicked.connect(self.showChronology)
         self.plotCheckBox.clicked.connect(self.checkDataPLot)
         self.deleteButton.clicked.connect(self.remove_dataset)
-        for key in ['UniformPrior','GaussianPrior','AutoOffset','ManualOffset']:
-            self.__dict__[key].clicked.connect(self.set_offsetValues)
+
         self.loadButton.clicked.connect(lambda: self.calc.load_data(self))
         self.addButton.clicked.connect(self.tableModel.addDate)
         self.tableView.clicked.connect(self.tableModel.tableClicked)
@@ -75,8 +66,6 @@ class DataSetManager(QWidget):
     def set_offsetValues(self):
         if self.changing == True:
             return
-
-
         for key in ['min','max','step','offset','offset_sig','mu','sigma']:
             self.calc.offset_settings[key] = self.__dict__[key].value()
         if self.AutoOffset.isChecked():
@@ -119,7 +108,12 @@ class DataSetManager(QWidget):
         self.button_group.setExclusive(True)  # This is actually the default
         self.button_group.addButton(self.ManualOffset)
         self.button_group.addButton(self.AutoOffset)
-        self.GaussianPrior.setChecked(True)
+        if self.calc.offset_settings['Manual']:
+            self.ManualOffset.setChecked(True)
+        else:
+            self.AutoOffset.setChecked(True)
+        for key in ['UniformPrior', 'GaussianPrior', 'AutoOffset', 'ManualOffset']:
+            self.__dict__[key].clicked.connect(self.set_offsetValues)
         self.offsetSlider.setValue(int(self.calc.offset))
 
     def changeOffset(self,value):
@@ -225,18 +219,16 @@ class DataSetManager(QWidget):
         self.widget.redraw()
 
     def saveData(self):
-        settings = {}
-        for key in ['dataName','colors','colorbools','buttonColors','plotbool','showfits']:
-            settings[key] = self.calc.plotsettings[key]
-        write_settings(settings, f'DataSettings\\Settings{self.tabIndex}')
-        with open(f'{self.folder}{self.tabIndex}.pkl', 'wb') as file:
+        file_path = Path(self.folder) / f"{self.tabIndex}.pkl"
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        with file_path.open('wb') as file:
             pickle.dump(self.calc, file)
 
 
     def loadData(self):
-        settings = read_settings(f'DataSettings\\Settings{self.tabIndex}')
+        pkl_path = Path(self.folder) / f"{self.tabIndex}.pkl"
         try:
-            self.calc = pickle.load(open(f'{self.folder}{self.tabIndex}.pkl', 'rb'))
+            self.calc = pickle.load(open(pkl_path, 'rb'))
             if 'plotsettings' not in self.calc.__dict__:
                 self.calc.plotsettings = default_plot_settings
             else:
@@ -249,11 +241,8 @@ class DataSetManager(QWidget):
                 for key in default_offset_settings:
                     if key not in self.calc.offset_settings:
                         self.calc.offset_settings[key] = default_offset_settings[key]
-            for key in settings:
-                self.__dict__[key] = settings[key]
-                self.calc.plotsettings[key] = settings[key]
-            self.calc.plotsettings['colors'] = self.colors
-        except:
+        except Exception as e:
+            print(e)
             self.calc = Calculator(self.widget.curveManager)
             self.calc.dataName = f'Tab {self.tabIndex}'
             self.colors = copy(self.widget.curveColors)

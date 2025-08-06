@@ -14,7 +14,7 @@ if __name__ == '__main__':
         QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
         QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, True)
         app = QApplication(argv)
-        widget = WidgetMain(Path('Library\\UIFiles\\MainWindow.ui'))
+        widget = WidgetMain(Path('Library/UIFiles/MainWindow.ui'))
         widget.show()
         #app.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps)
         # Set the application to use high DPI scaling
