@@ -132,13 +132,6 @@
      </layout>
     </widget>
    </item>
-   <item row="11" column="2">
-    <widget class="QCheckBox" name="ChronoCheck">
-     <property name="text">
-      <string>Mark initial Cronology</string>
-     </property>
-    </widget>
-   </item>
    <item row="5" column="1" colspan="8">
     <widget class="MyTableView" name="tableView"/>
    </item>
@@ -174,13 +167,6 @@
     <widget class="QPushButton" name="addButton">
      <property name="text">
       <string>Add Date</string>
-     </property>
-    </widget>
-   </item>
-   <item row="14" column="2">
-    <widget class="QPushButton" name="deleteButton">
-     <property name="text">
-      <string>Remove this set</string>
      </property>
     </widget>
    </item>
@@ -465,6 +451,20 @@
        </widget>
       </item>
      </layout>
+    </widget>
+   </item>
+   <item row="11" column="2" colspan="3">
+    <widget class="QCheckBox" name="ChronoCheck">
+     <property name="text">
+      <string>Mark initial Cronology</string>
+     </property>
+    </widget>
+   </item>
+   <item row="14" column="2" colspan="2">
+    <widget class="QPushButton" name="deleteButton">
+     <property name="text">
+      <string>Remove this set</string>
+     </property>
     </widget>
    </item>
   </layout>
