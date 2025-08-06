@@ -4,6 +4,8 @@ from Library.MainWindow import WidgetMain
 from pyqtgraph.Qt import QtCore
 from pathlib import Path
 import matplotlib
+import faulthandler
+faulthandler.enable()
 matplotlib.use("Qt5Agg")
 from Library.EditableTabWidget import EditableTabWidget
 

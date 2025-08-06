@@ -59,59 +59,6 @@ class Calculator:
             self.wiggledata['dt'] = self.wiggledata['year']-max(self.wiggledata['year'])
 
 
-    @timer
-    def calc_probs_with_ranges(self):
-        self.curves = self.curveData.curves
-        wiggleyears = self.wiggledata['year']
-        ranges = self.wiggledata['range']
-        uniqueranges = unique(ranges)
-        wigglefms = self.wiggledata['fm_corr']
-        wigglefms_sig = self.wiggledata['fm_sig_corr']
-        N = len(wiggleyears)
-        shiftyears = self.wiggledata['dt']
-        for curve in self.curves:
-            if curve is None:
-                continue
-            for range in uniqueranges:
-                self.curveData.generate_averaged_curves(curve,range)
-        def process_curve(curve):
-            if curve is None:
-                return curve, None
-            if curve not in self.data:
-                self.data[curve] = {}
-            self.data[curve]['tyears'] = full(2, nan)
-            self.data[curve]['ps'] = full(shape=(2, N), fill_value=nan)
-            if len(wigglefms_sig) == 0:
-                return curve, self.data[curve]
-            maxsig = 10*max(wigglefms_sig)
-            minfmsearch = min(wigglefms - maxsig)
-            maxfmsearch = max(wigglefms + maxsig)
-            fms = self.curveData.data[curve]['fm']
-            t = self.curveData.data[curve]['calendaryear']
-            indexes = where((fms >= minfmsearch) & (fms < maxfmsearch))[0]
-            indexes = arange(min(indexes), max(indexes), 1)
-            years = t[indexes]
-            minyear, maxyear = min(years) - min(shiftyears), max(years) - max(shiftyears)-max(ranges)
-            tyears = arange(minyear, maxyear, 1)
-            self.data[curve]['tyears'] = tyears
-            ps = zeros(shape=(len(wiggleyears), len(tyears)))
-            for i,dt in enumerate(shiftyears):
-                int_range = ranges[i]
-                fm_interpol = interp1d(self.curveData.data[curve][f'calendaryear_{int_range}'],self.curveData.data[curve][f'fm_{int_range}'])
-                fm_sig_interpol = interp1d(self.curveData.data[curve][f'calendaryear_{int_range}'],self.curveData.data[curve][f'fm_sig_{int_range}'])
-                Ri = wigglefms[i]
-                dRi = wigglefms_sig[i]
-                dR = fm_sig_interpol(tyears + dt)
-                R = fm_interpol(tyears + dt)
-                pi = exp(-(Ri - R) ** 2 / (2 * dRi ** 2 + 2 * dR ** 2)) / (dRi ** 2 + dR ** 2) ** 0.5
-                ps[i] = pi / npsum(pi)
-            self.data[curve]['ps'] = ps
-            return curve, self.data[curve]
-        for curve in self.curves:
-            c, data = process_curve(curve)
-            if data is not None:
-                self.data[curve] = data
-
     def calc_bayesian_prob(self):
         N = len(self.wiggledata['year'])
         active = self.wiggledata['active']
@@ -145,10 +92,9 @@ class Calculator:
             self.calc_probs()
             #self.calc_probs_with_ranges()
             self.calc_bayesian_prob()
-            self.calc_percentile_ranges()
         else:
             self.calc_probs_with_offsetfit()
-            self.calc_percentile_ranges()
+        self.calc_percentile_ranges()
 
     @timer
     def calc_probs_with_offsetfit(self):
@@ -156,15 +102,10 @@ class Calculator:
         wiggleyears = self.wiggledata['year']
         wigglefms = self.wiggledata['fm']
         wigglefms_sig = self.wiggledata['fm_sig']
-        mini = self.offset_settings['min']
-        maxi = self.offset_settings['max']
-        step = self.offset_settings['step']
-        mu = self.offset_settings['mu']
-        sigma = self.offset_settings['sigma']
-        testoffsets = arange(mini, maxi, step)
+        testoffsets = arange(self.offset_settings['min'], self.offset_settings['max'], self.offset_settings['step'])
         N = len(wiggleyears)
         if self.offset_settings['GaussianPrior']:
-            offsetprior = norm.pdf(testoffsets, loc=mu, scale=sigma)
+            offsetprior = norm.pdf(testoffsets, loc=self.offset_settings['mu'], scale=self.offset_settings['sigma'])
             offsetprior /= offsetprior.sum()
         else:
             offsetprior = ones(len(testoffsets)) / len(testoffsets)
@@ -207,11 +148,10 @@ class Calculator:
                     p_i = exp(-diff ** 2 / denom) / (dRi ** 2 + dR ** 2) ** 0.5
                     p_i = p_i / npsum(p_i)
                     ps_likelihood[j, i] = p_i * offsetprior[j]
-                    # ps[i,:] = np.log(pi)-np.log(sum_pi)+np.log(offsetprior[j])
                     ps[i, :] = -0.5 * ((Ri - R) ** 2 / (dRi ** 2 + dR ** 2)) - 0.5 * log(
                         2 * pi * (dRi ** 2 + dR ** 2)) + log(offsetprior[j])
-                # pt = logsumexp(ps, axis=0)
-                pt = npsum(ps, axis=0)
+                activeps = ps[self.wiggledata['active'], :]
+                pt = npsum(activeps, axis=0)
                 likelyhoods[j] = pt
             likelyhoods = exp(likelyhoods)  #
             weighted_likelihood = likelyhoods  # offsetprior[:, np.newaxis]
@@ -244,11 +184,8 @@ class Calculator:
             sig_corr = (age_sig ** 2 + offset_sig ** 2) ** 0.5
             self.data[curve]['fm_corr'] = exp(-age_corr / 8033)
             self.data[curve]['fm_sig_corr'] = self.data[curve]['fm_corr']  / 8033 * sig_corr
-            self.data[curve]['Offset'] = offset
-            self.data[curve]['Offset_sig'] = offset_sig
-            print(offset_sig)
-
-
+            self.data[curve]['offset'] = offset
+            self.data[curve]['offset_sig'] = offset_sig
 
     @timer
     def calc_probs(self):
@@ -258,7 +195,6 @@ class Calculator:
         wigglefms_sig = self.wiggledata['fm_sig_corr']
         N = len(wiggleyears)
         shiftyears = self.wiggledata['dt']
-
         def process_curve(curve):
             if curve is None:
                 return curve, None
@@ -305,7 +241,6 @@ class Calculator:
             ps /= ps.sum(axis=1, keepdims=True)
             self.data[curve]['ps'] = ps
             return curve, self.data[curve]
-
         for curve in self.curves:
             c, data = process_curve(curve)
             if data is not None:
@@ -384,7 +319,6 @@ class Calculator:
         dataSetManager.tabWidget.setTabText(dataSetManager.tabIndex, self.dataName)
         self.plotsettings['dataName'] = label
         dataSetManager.widget.redraw()
-
 
     def calc_percentile_ranges(self):
         self.percentiles = [0.95]

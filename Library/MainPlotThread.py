@@ -1,14 +1,6 @@
-import time
-
-from matplotlib import pyplot as plt
 from numpy import log, where, array
 from numpy import ones, arange,zeros,nanargmax,diff,split, inf
-from matplotlib.figure import Figure
 from PyQt5.QtCore import QThread, pyqtSignal
-import matplotlib
-from Library.timer import timer
-matplotlib.use("Qt5Agg")
-
 
 class MainPLotWorker(QThread):
     finished = pyqtSignal(object)
@@ -94,18 +86,18 @@ class MainPLotWorker(QThread):
             return
         #ax1 = self.ax[1]
         color = calc.plotsettings['colors'][index]
-        rangeadd = 60
+        rangeadd = 50
         try:
             maxind = nanargmax(calc.data[curve]['probability'])
         except ValueError:
             maxind = None
-        if maxind is not None and len(calc.wiggleyears)>0:
+        wiggleyears = calc.wiggledata['year'][calc.wiggledata['active']]
+        if maxind is not None and len(wiggleyears)>0:
             maxyear = calc.data[curve]['tyears'][maxind]
-            x = calc.wiggleyears + maxyear - max(calc.wiggleyears)
+            x = wiggleyears + maxyear - max(wiggleyears)
             maxx = max(x)
             minx = min(x)
             if calc.plotsettings['plotbool'] and calc.plotsettings['showfits'][index]:
-
                 y = calc.data[curve]['fm_corr'][calc.wiggledata['active']]
                 dy = calc.data[curve]['fm_sig_corr'][calc.wiggledata['active']]
                 if self.ageplot:
@@ -119,7 +111,7 @@ class MainPLotWorker(QThread):
             self.maxx = max(self.maxx,maxx+ rangeadd)
             self.minx = min(self.minx,minx - rangeadd)
         if calc.plotsettings['chronology'] and index == 0  and len(calc.wiggleyears)>0:
-            self.data['axvline'].append({'x':max(calc.wiggleyears),'ymax':1,'color':color,'label':None})
+            self.data['axvline'].append({'x':max(calc.wiggleyears+calc.shift),'ymax':1,'color':color,'label':None})
             #self.ax[1].axvline(max(calc.wiggleyears),color=color,ymax=0.5)
         if len(calc.wiggleyears)>0:
             self.plot_percentiles(calc,curve,index)
@@ -129,6 +121,7 @@ class MainPLotWorker(QThread):
         color = calc.plotsettings['colors'][index]
         #ylim = self.ax[1].get_ylim()
         #yrange = ylim[1] - ylim[0]
+        rangeadd = 10
         for percentile in calc.percentiles:
             mask = data[f'{percentile}%range']
             y_lvl = 0-0.02*(index+1)
@@ -146,8 +139,8 @@ class MainPLotWorker(QThread):
                     else:
                         x0 = min(x_seg)+calc.shift
                         x1 = max(x_seg)+calc.shift
-                        self.maxx = max(self.maxx, x1)
-                        self.minx = min(self.minx, x0)
+                        self.maxx = max(self.maxx, x1 + rangeadd)
+                        self.minx = min(self.minx, x0 - rangeadd)
                         self.data['lines'].append(
                             {'x': [x0,x1], 'y': array([index, index]), 'color': color, 'label': None})
                         #self.ax[1].plot([min(x_seg), max(x_seg)], [y_lvl, y_lvl], color=calc.plotsettings['colors'][index], alpha=0.4, lw=3)

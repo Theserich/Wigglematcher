@@ -1,13 +1,10 @@
 from PyQt5.uic import loadUi
-
 from pathlib import Path
 import os
 from matplotlib.axis import Axis
 from Library.comset import read_settings, write_settings
 from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QFileDialog, QColorDialog
 from PyQt5.Qt import Qt
-from PyQt5.QtCore import QItemSelectionModel
-from matplotlib.pyplot import Figure
 from Library.dataSetManager import DataSetManager
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas,NavigationToolbar2QT as NavigationToolbar
 from matplotlib import pyplot as plt
@@ -18,7 +15,6 @@ from Library.MainPlotThread import MainPLotWorker
 import matplotlib
 from Library.ExcelWorker import ExcelWorker
 matplotlib.use("Qt5Agg")
-from copy import copy
 
 
 class WidgetMain(QMainWindow):
@@ -47,8 +43,6 @@ class WidgetMain(QMainWindow):
             index = self.__dict__[f'curveBox{i}'].findText(curvestring)
             if index != -1:  # -1 means not found
                 self.__dict__[f'curveBox{i}'].setCurrentIndex(index)
-
-        #self.update_plot()
         self.ageBox.stateChanged.connect(self.changeToAge)
         self.addDatasetButton.clicked.connect(self.addDataset_tab)
         self.showButton.clicked.connect(self.redraw)
@@ -60,7 +54,58 @@ class WidgetMain(QMainWindow):
         self.recalcFlag = False
         self.recalcIndex = None
         self.threads = []
+        self.plotworker_cleanup_in_progress = False
         self.redraw()
+
+    def safely_start_worker(self):
+        if self.plotworker_cleanup_in_progress:
+            return  # Prevent overlapping cleanup
+
+        if hasattr(self, 'plotworker') and self.plotworker is not None:
+            if self.plotworker.isRunning():
+                self.plotworker_cleanup_in_progress = True
+                self.plotworker.finished.connect(self._on_plotworker_cleanup_done)
+                self.plotworker.quit()
+                self.plotworker.wait()
+                return
+
+        self._start_worker_internal()
+
+    def _on_plotworker_cleanup_done(self):
+        self.plotworker.finished.disconnect(self._on_plotworker_cleanup_done)
+        self.plotworker.finished.disconnect(self.figure_updated)
+        self.plotworker_cleanup_in_progress = False
+        self._start_worker_internal()
+
+    def _start_worker_internal(self):
+        self.plotworker = MainPLotWorker(self.datasets,self.curveManager,self.curveColors,recalculate=self.recalcFlag,recalcindex=self.recalcIndex,ageplot=self.ageplot)
+        self.plotworker.finished.connect(self.figure_updated)
+        self.plotworker.start()
+
+
+    @timer
+    def redraw(self):
+        self.tabindex = self.tabWidget.currentIndex()
+        if self.tabindex != -1:
+            table = self.datasets[self.tabindex].tableView
+            table.resizeColumnsToContents()
+            model = table.model()
+            model.layoutAboutToBeChanged.emit()
+        #self.selectedIndexes = table.selectionModel().selectedIndexes()
+        self.ageplot = self.ageBox.isChecked()
+        #if hasattr(self, 'plotworker') and self.plotworker is not None:
+        #    if self.plotworker.isRunning():
+        #        self.plotworker.quit()
+        #        self.plotworker.wait()
+
+        self.safely_start_worker()
+        #self.plotworker = MainPLotWorker(self.datasets,self.curveManager,self.curveColors,recalculate=self.recalcFlag,recalcindex=self.recalcIndex,ageplot=self.ageplot)
+        self.progressBar.setVisible(True)
+        self.progressBar.setRange(0, 0)
+        self.threads.append(self.plotworker)
+
+        #self.plotworker.finished.connect(self.figure_updated)
+        self.plotworker.start()
 
     def changeCurves(self):
         for i in range(self.Ncurves):
@@ -149,6 +194,9 @@ class WidgetMain(QMainWindow):
         self.redraw()
 
     def figure_updated(self,dataset):
+        legend = self.ax[0].get_legend()
+        if legend is not None:
+            legend.remove()
         for errorbar in self.errorbarlines:
             errorbar.set_label(None)
         self.errorbarlines = []
@@ -182,11 +230,8 @@ class WidgetMain(QMainWindow):
                             artist.remove()
                         except ValueError:
                             pass
-        legend = self.ax[0].get_legend()
         maxy = -inf
         miny = inf
-        if legend is not None:
-            legend.remove()
         for data in dataset['errorbar']:
             errorbar_plot = self.ax[0].errorbar(data['x'], data['y'], data['yerr'], label=data['label'],color=data['color'],fmt='x',alpha=0.8)
             self.errorbarlines.append(errorbar_plot)
@@ -246,12 +291,12 @@ class WidgetMain(QMainWindow):
         for dataset in self.datasets:
             dataset.update_all()
 
+
     def setBounds(self,overlap):
         ax = self.ax
         n = len(ax)
         xlim = ax[0].get_xlim()
         xticks = ax[0].get_xticks()
-
         for i, x in enumerate(ax):
             ticks = x.get_yticks()
             dticks = ticks[1] - ticks[0]
@@ -283,23 +328,7 @@ class WidgetMain(QMainWindow):
             else:
                 x.spines['bottom'].set_visible(False)
 
-    @timer
-    def redraw(self):
-        self.tabindex = self.tabWidget.currentIndex()
-        if self.tabindex != -1:
-            table = self.datasets[self.tabindex].tableView
-            table.resizeColumnsToContents()
-            model = table.model()
-            model.layoutAboutToBeChanged.emit()
-        #self.selectedIndexes = table.selectionModel().selectedIndexes()
-        ageplot = self.ageBox.isChecked()
-        plotworker = MainPLotWorker(self.datasets,self.curveManager,self.curveColors,recalculate=self.recalcFlag,recalcindex=self.recalcIndex,ageplot=ageplot)
-        self.progressBar.setVisible(True)
-        self.progressBar.setRange(0, 0)
-        self.threads.append(plotworker)
 
-        plotworker.finished.connect(self.figure_updated)
-        plotworker.start()
 
     def saveData(self):
         start_folder = 'Library\\SaveFolder'

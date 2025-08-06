@@ -10,6 +10,8 @@ from Library.PLotWindow import PlotWindow_test
 from matplotlib import pyplot as plt
 from Library.PlotWorker import PLotWorker,PlotWindow
 from PyQt5.QtCore import QThread, pyqtSignal
+from PyQt5.QtCore import QTimer
+
 
 
 class DataSetManager(QWidget):
@@ -47,8 +49,8 @@ class DataSetManager(QWidget):
         self.ChronoCheck.clicked.connect(self.showChronology)
         self.plotCheckBox.clicked.connect(self.checkDataPLot)
         self.deleteButton.clicked.connect(self.remove_dataset)
-        self.AutoOffset.clicked.connect(self.set_offsetValues)
-        self.ManualOffset.clicked.connect(self.set_offsetValues)
+        for key in ['UniformPrior','GaussianPrior','AutoOffset','ManualOffset']:
+            self.__dict__[key].clicked.connect(self.set_offsetValues)
         self.loadButton.clicked.connect(lambda: self.calc.load_data(self))
         self.addButton.clicked.connect(self.tableModel.addDate)
         self.tableView.clicked.connect(self.tableModel.tableClicked)
@@ -63,13 +65,18 @@ class DataSetManager(QWidget):
         self.changing = False
         self.shiftEdit.valueChanged.connect(self.changeShift)
         self.offsetSlider.valueChanged.connect(self.changeOffset)
-        self.setAgreementLabels()
+        self.set_Agreement_and_OffsetLabels()
         self.tableView.resizeColumnsToContents()
         self.plotWorkers = []
+        self.debounce_timer = QTimer(self)
+        self.debounce_timer.setSingleShot(True)
+        self.debounce_timer.timeout.connect(self.widget.redraw)
 
     def set_offsetValues(self):
         if self.changing == True:
             return
+
+
         for key in ['min','max','step','offset','offset_sig','mu','sigma']:
             self.calc.offset_settings[key] = self.__dict__[key].value()
         if self.AutoOffset.isChecked():
@@ -80,24 +87,34 @@ class DataSetManager(QWidget):
             self.calc.offset_settings['GaussianPrior'] = True
         else:
             self.calc.offset_settings['GaussianPrior'] = False
+        self.activate_offset_fields()
         self.widget.recalcFlag = True
         self.widget.recalcIndex = self.tabIndex
-        self.widget.redraw()
+        self.debounce_timer.start(100)
         self.changing = False
+
+    def activate_offset_fields(self):
+        if self.calc.offset_settings['Manual']:
+            for key in ['offsetSlider', 'offset', 'offset_sig']:
+                self.__dict__[key].setEnabled(True)
+            for key in ['min', 'max', 'step', 'mu', 'sigma', 'UniformPrior', 'GaussianPrior']:
+                self.__dict__[key].setEnabled(False)
+        else:
+            for key in ['offsetSlider', 'offset', 'offset_sig']:
+                self.__dict__[key].setEnabled(False)
+            for key in ['min', 'max', 'step', 'mu', 'sigma', 'UniformPrior', 'GaussianPrior']:
+                self.__dict__[key].setEnabled(True)
 
     def setup_offsets(self):
         for key in ['min','max','step','offset','offset_sig','mu','sigma']:
             self.__dict__[key].setValue(self.calc.offset_settings[key])
             self.__dict__[key].valueChanged.connect(self.set_offsetValues)
-        if self.calc.offset_settings['Manual']:
-            self.ManualOffset.setChecked(True)
-        else:
             self.AutoOffset.setChecked(True)
         if self.calc.offset_settings['GaussianPrior']:
             self.GaussianPrior.setChecked(True)
         else:
             self.UniformPrior.setChecked(True)
-
+        self.activate_offset_fields()
         self.button_group = QButtonGroup(self)
         self.button_group.setExclusive(True)  # This is actually the default
         self.button_group.addButton(self.ManualOffset)
@@ -133,10 +150,8 @@ class DataSetManager(QWidget):
         self.widget.redraw()
         self.changing = False
 
-
     def update_all(self):
-        self.tableModel.data = self.calc.wiggledata
-        self.setAgreementLabels()
+        self.set_Agreement_and_OffsetLabels()
         self.tableModel.updateHeader()
         self.tableModel.layoutChanged.emit()
 
@@ -168,7 +183,7 @@ class DataSetManager(QWidget):
         index = self.buttonDict[button]['index']
         plotwindow = PlotWindow_test(self.calc,curveind=index,plotButton=button)
 
-    def setAgreementLabels(self):
+    def set_Agreement_and_OffsetLabels(self):
         for i,curve in enumerate(self.calc.curves):
             if curve is not None:
                 try:
@@ -176,9 +191,16 @@ class DataSetManager(QWidget):
                     threshold = self.calc.data[curve]['A_n']*100
                     self.__dict__[f'agreementLabel{i}'].setText(f'{curve}: {agreement:.2f}%')
                     self.threshLabel.setText(f'threshold: {threshold:.2f}%')
+                    if self.calc.offset_settings['Manual']:
+                        self.__dict__[f'offsetLabel{i}'].setText('')
+                    else:
+                        self.__dict__[f'offsetLabel{i}'].setText(
+                            f'{curve}: {self.calc.data[curve]['offset']:.1f} ± {self.calc.data[curve]["offset_sig"]:.1f}')
                 except:
                     self.__dict__[f'agreementLabel{i}'].setText('')
+                    self.__dict__[f'offsetLabel{i}'].setText('')
             else:
+                self.__dict__[f'offsetLabel{i}'].setText('')
                 self.__dict__[f'agreementLabel{i}'].setText('')
 
     def display_plot(self, data):
