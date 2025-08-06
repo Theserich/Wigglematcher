@@ -87,6 +87,10 @@ class Calculator:
     def recalc_all(self):
         self.offset = self.offset_settings['offset']
         self.offset_sig = self.offset_settings['offset_sig']
+        for curve in self.curves:
+            if curve is not None:
+                if curve not in self.data:
+                    self.data[curve] = {}
         if self.offset_settings['Manual']:
             self.calcOffset()
             self.calc_probs()
