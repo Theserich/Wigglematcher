@@ -15,7 +15,7 @@
     "posy": 39,
     "curves": [
         "ETHCal",
-        "None"
+        "intcal20"
     ],
     "curveColors": [
         "#ff5500",
