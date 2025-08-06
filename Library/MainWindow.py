@@ -367,6 +367,7 @@ class WidgetMain(QMainWindow):
             if curve == 'None':
                 self.curveManager.curves[i] = None
         folder_path   = self.starfolder + 'DataSettings'
+        os.makedirs(folder_path, exist_ok=True)
         pkl_files = [f for f in os.listdir(folder_path) if f.endswith(".pkl")]
         self.datasets = []
         if len(pkl_files) > 0:
