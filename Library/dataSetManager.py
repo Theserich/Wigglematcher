@@ -189,7 +189,7 @@ class DataSetManager(QWidget):
                         self.__dict__[f'offsetLabel{i}'].setText('')
                     else:
                         self.__dict__[f'offsetLabel{i}'].setText(
-                            f'{curve}: {self.calc.data[curve]['offset']:.1f} ± {self.calc.data[curve]["offset_sig"]:.1f}')
+                            f'{curve}: {self.calc.data[curve]["offset"]:.1f} ± {self.calc.data[curve]["offset_sig"]:.1f}')
                 except:
                     self.__dict__[f'agreementLabel{i}'].setText('')
                     self.__dict__[f'offsetLabel{i}'].setText('')
@@ -245,25 +245,22 @@ class DataSetManager(QWidget):
             print(e)
             self.calc = Calculator(self.widget.curveManager)
             self.calc.dataName = f'Tab {self.tabIndex}'
-            self.colors = copy(self.widget.curveColors)
-            self.calc.plotsettings['colors'] = self.colors
+            self.calc.plotsettings['colors'] = copy(self.widget.curveColors)
             self.buttonColors = self.calc.plotsettings['buttonColors']
 
     def check_color(self):
         widget = self.sender()
         name = widget.objectName()
         index = int(name[-1])
-        precolor = self.colors[index]
+        precolor = self.calc.plotsettings['colors'] [index]
         self.calc.plotsettings['colorbools'][index] = widget.isChecked()
         if widget.isChecked():
             button = self.__dict__[f'colorButton{index}']
             color = button.palette().color(QPalette.Button)
             self.calc.plotsettings['colors'][index] = color.name()
         else:
-            button = self.widget.__dict__[f'colorbutton{index}']
-            color = button.palette().color(QPalette.Button)
-            self.colors[index] = color.name()
-        if precolor != self.colors[index]:
+            self.calc.plotsettings['colors'][index] = self.widget.curveColors[index]
+        if precolor != self.calc.plotsettings['colors'][index]:
             self.widget.redraw()
 
     def check_plot(self):
@@ -290,5 +287,5 @@ class DataSetManager(QWidget):
             if self.__dict__[f'colorCheck{index}'].isChecked():
                 self.calc.plotsettings['colors'][index] = colname
                 self.widget.redraw()
-            self.buttonColors[index] = colname
+            self.calc.plotsettings['buttonColors'][index] = colname
             widget.setStyleSheet(f"background-color: {colname};")

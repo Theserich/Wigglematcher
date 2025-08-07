@@ -167,6 +167,7 @@ class MyTableModel(QAbstractTableModel):
             #self.calc.calc_bayesian_prob()
             #self.calc.calc_percentile_ranges()
             self.parent.recalcFlag = True
+            self.parent.recalcIndex = self.tabIndex
             self.parent.redraw()
 
     def addDate(self):

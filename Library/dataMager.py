@@ -15,7 +15,7 @@ from scipy.stats import norm
 from matplotlib import pyplot as plt
 
 default_plot_settings = {'dataName':'New Data','colors': ['C0','C0'],'plotbools': [True,True],'showfits':[True,False],'colorbools': [False,False],'plotbool':True,'buttonColors':['#ff5500','#000000'],'chronology':False}
-default_offset_settings = {'Manual':True,'offset':0,'offset_sig':0,'min':-100,'max':100,'step':1,'GaussianPrior':False,'mu':0,'sigma':50}
+default_offset_settings = {'Manual':True,'offset':0,'offset_sig':0,'min':-100,'max':100,'step':1,'GaussianPrior':True,'mu':0,'sigma':50}
 
 class Calculator:
     def __init__(self,curveManager):
@@ -31,6 +31,7 @@ class Calculator:
         self.syntherror = 1.5
         self.amp = 0.8
         self.wiggledata = {}
+        self.wiggledata['label'] = array(['Sample 1', 'Sample 2', 'Sample 3'],dtype='U25')
         self.wiggledata['year'] = array([1800, 1801, 1802])
         self.wiggledata['age'] = array([182, 163, 185])
         self.wiggledata['age_sig'] = array([15, 14, 14])
