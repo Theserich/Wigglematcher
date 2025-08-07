@@ -3,7 +3,7 @@ from pathlib import Path
 import os
 from matplotlib.axis import Axis
 from Library.comset import read_settings, write_settings
-from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QFileDialog, QColorDialog
+from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QFileDialog, QColorDialog,QMessageBox
 from PyQt5.Qt import Qt
 from Library.dataSetManager import DataSetManager
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas,NavigationToolbar2QT as NavigationToolbar
@@ -14,6 +14,7 @@ from Library.CurveManager import CurveManager
 from Library.MainPlotThread import MainPLotWorker
 import matplotlib
 from Library.ExcelWorker import ExcelWorker
+
 matplotlib.use("Qt5Agg")
 
 
@@ -91,20 +92,11 @@ class WidgetMain(QMainWindow):
             table.resizeColumnsToContents()
             model = table.model()
             model.layoutAboutToBeChanged.emit()
-        #self.selectedIndexes = table.selectionModel().selectedIndexes()
         self.ageplot = self.ageBox.isChecked()
-        #if hasattr(self, 'plotworker') and self.plotworker is not None:
-        #    if self.plotworker.isRunning():
-        #        self.plotworker.quit()
-        #        self.plotworker.wait()
-
         self.safely_start_worker()
-        #self.plotworker = MainPLotWorker(self.datasets,self.curveManager,self.curveColors,recalculate=self.recalcFlag,recalcindex=self.recalcIndex,ageplot=self.ageplot)
         self.progressBar.setVisible(True)
         self.progressBar.setRange(0, 0)
         self.threads.append(self.plotworker)
-
-        #self.plotworker.finished.connect(self.figure_updated)
         self.plotworker.start()
 
     def changeCurves(self):
@@ -321,7 +313,6 @@ class WidgetMain(QMainWindow):
                 Axis.set_label_coords(x.yaxis, 1 + 0.05, ylabelheight)
             x.set_ylim(top=top, bottom=bottom)
             x.set_yticks(ticks[1:-1])
-            # x.set_ylabel('')
             x.spines['top'].set_visible(False)
             if i == 0:
                 x.spines['bottom'].set_bounds((xticks[1], xticks[-2]))
@@ -335,16 +326,32 @@ class WidgetMain(QMainWindow):
         file_path, _ = QFileDialog.getSaveFileName(
             self,
             "Save File As",
-            "untitled.txt",  # default file name
-            "Text Files (*.xlsx);;All Files (*)",
+            "untitled.xlsx",  # default file name
+            "Excel Files (*.xlsx);;All Files (*)",
         )
         if file_path:
             excelWorker = ExcelWorker(self.datasets,self.curveManager,file_path)
-            self.progressBar.setVisible(True)
-            self.progressBar.setRange(0, 0)
-            self.threads.append(excelWorker)
             excelWorker.finished.connect(self.filesSaved)
+            excelWorker.error_occurred.connect(self.show_error_message)
+            self.threads.append(excelWorker)
             excelWorker.start()
+
+    def show_error_message(self, error_message):
+        """Display error message when Excel export fails"""
+        # Clean up progress bar
+        self.threads = [t for t in self.threads if t.isRunning()]
+        if len(self.threads) == 0:
+            self.progressBar.setRange(0, 100)
+            self.progressBar.setValue(0)
+
+        # Show error dialog
+        msg_box = QMessageBox(self)
+        msg_box.setIcon(QMessageBox.Critical)
+        msg_box.setWindowTitle("Excel Export Error")
+        msg_box.setText("Failed to export data to Excel file")
+        msg_box.setDetailedText(error_message)
+        msg_box.setStandardButtons(QMessageBox.Ok)
+        msg_box.exec_()
 
     def filesSaved(self):
         self.threads = [t for t in self.threads if t.isRunning()]

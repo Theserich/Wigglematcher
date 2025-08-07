@@ -21,7 +21,7 @@ class DataSetManager(QWidget):
         self.widgetFile = Path('Library/UIFiles/DatasetWidget.ui')
         self.tabIndex = index
         self.widget = widget
-        self.loadData()
+        self.loadData(loadData)
         self.tabWidget = self.widget.tabWidget
         loadUi(self.widgetFile, self)
         self.setup_offsets()
@@ -66,12 +66,17 @@ class DataSetManager(QWidget):
     def set_offsetValues(self):
         if self.changing == True:
             return
+        premanual = self.calc.offset_settings['Manual']
         for key in ['min','max','step','offset','offset_sig','mu','sigma']:
             self.calc.offset_settings[key] = self.__dict__[key].value()
         if self.AutoOffset.isChecked():
             self.calc.offset_settings['Manual'] = False
+            if premanual == False:
+                return
         else:
             self.calc.offset_settings['Manual'] = True
+            if premanual == True:
+                return
         if self.GaussianPrior.isChecked():
             self.calc.offset_settings['GaussianPrior'] = True
         else:
@@ -225,28 +230,33 @@ class DataSetManager(QWidget):
             pickle.dump(self.calc, file)
 
 
-    def loadData(self):
-        pkl_path = Path(self.folder) / f"{self.tabIndex}.pkl"
-        try:
-            self.calc = pickle.load(open(pkl_path, 'rb'))
-            if 'plotsettings' not in self.calc.__dict__:
-                self.calc.plotsettings = default_plot_settings
-            else:
-                for key in default_plot_settings:
-                    if key not in self.calc.plotsettings:
-                        self.calc.plotsettings[key] = default_plot_settings[key]
-            if 'offset_settings' not in self.calc.__dict__:
-                self.calc.offset_settings = default_offset_settings
-            else:
-                for key in default_offset_settings:
-                    if key not in self.calc.offset_settings:
-                        self.calc.offset_settings[key] = default_offset_settings[key]
-        except Exception as e:
-            print(e)
+    def loadData(self,loadData):
+        if loadData == False:
             self.calc = Calculator(self.widget.curveManager)
             self.calc.dataName = f'Tab {self.tabIndex}'
             self.calc.plotsettings['colors'] = copy(self.widget.curveColors)
             self.buttonColors = self.calc.plotsettings['buttonColors']
+        else:
+            pkl_path = Path(self.folder) / f"{self.tabIndex}.pkl"
+            try:
+                self.calc = pickle.load(open(pkl_path, 'rb'))
+                if 'plotsettings' not in self.calc.__dict__:
+                    self.calc.plotsettings = default_plot_settings
+                else:
+                    for key in default_plot_settings:
+                        if key not in self.calc.plotsettings:
+                            self.calc.plotsettings[key] = default_plot_settings[key]
+                if 'offset_settings' not in self.calc.__dict__:
+                    self.calc.offset_settings = default_offset_settings
+                else:
+                    for key in default_offset_settings:
+                        if key not in self.calc.offset_settings:
+                            self.calc.offset_settings[key] = default_offset_settings[key]
+            except Exception as e:
+                self.calc = Calculator(self.widget.curveManager)
+                self.calc.dataName = f'Tab {self.tabIndex}'
+                self.calc.plotsettings['colors'] = copy(self.widget.curveColors)
+                self.buttonColors = self.calc.plotsettings['buttonColors']
 
     def check_color(self):
         widget = self.sender()
