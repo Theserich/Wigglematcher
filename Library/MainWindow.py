@@ -60,6 +60,7 @@ class WidgetMain(QMainWindow):
         self.threads = []
         self.plotworker_cleanup_in_progress = False
         self.plot_manager = PlotManager(self.widget, self.curveManager)
+        self.adjust_scrollarea_width()
         self.redraw()
 
     def safely_start_worker(self):
@@ -77,8 +78,7 @@ class WidgetMain(QMainWindow):
         self._start_worker_internal()
 
     def _on_plotworker_cleanup_done(self):
-        for dataset in self.datasets:
-            dataset.update_all()
+
         self.plotworker.finished.disconnect(self._on_plotworker_cleanup_done)
         self.plotworker.finished.disconnect(self.plot_manager.plot_datasets)
         self.plotworker.finishedBool.disconnect(self.cleanup)
@@ -102,6 +102,8 @@ class WidgetMain(QMainWindow):
 
     @timer
     def redraw(self):
+        for dataset in self.datasets:
+            dataset.update_all()
         self.tabindex = self.tabWidget.currentIndex()
         if self.tabindex != -1:
             table = self.datasets[self.tabindex].tableView
@@ -263,3 +265,36 @@ class WidgetMain(QMainWindow):
                 index = self.curveBox0.findText(label)
                 if index != -1:  # -1 means not found
                     self.curveBox0.setCurrentIndex(index)
+
+    def adjust_scrollarea_width(self):
+        """Adjust the scroll area width to fit table content without horizontal scrollbar"""
+        # Get the table view
+        curentTabIndex = self.tabWidget.currentIndex()
+        table_view = self.datasets[curentTabIndex].tableView
+        model = table_view.model()
+        # Calculate total width needed for all columns
+        total_width = 0
+
+        # Add width of all columns
+        for column in range(model.columnCount()):
+            total_width += table_view.columnWidth(column)
+
+        # Add some padding for borders, scrollbars, etc.
+        padding = 70  # Adjust this value as needed
+
+        # Add width of vertical scrollbar if present
+        if table_view.verticalScrollBar().isVisible():
+            total_width += table_view.verticalScrollBar().width()
+
+        # Set the scroll area width
+        required_width = total_width + padding
+        self.scrollarea.setFixedWidth(required_width)
+        # Optionally, you can also set a maximum width to prevent it from becoming too wide
+        max_width = 1500  # Adjust as needed
+        if required_width > max_width:
+            self.scrollarea.setFixedWidth(max_width)
+            # Re-enable horizontal scrolling if content is too wide
+            table_view.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        else:
+            # Disable horizontal scrolling since everything fits
+            table_view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)

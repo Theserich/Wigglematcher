@@ -1,3 +1,5 @@
+from logging import exception
+
 from Library.dataMager import Calculator,default_plot_settings,default_offset_settings
 from Library.tableModel import MyTableModel
 from PyQt5.QtWidgets import QTableView, QPushButton, QLineEdit, QWidget, QColorDialog, QGridLayout, QCheckBox,QRadioButton,QButtonGroup
@@ -67,17 +69,16 @@ class DataSetManager(QWidget):
     def set_offsetValues(self):
         if self.changing == True:
             return
-        premanual = self.calc.offset_settings['Manual']
+        sender = self.sender().objectName()
+        preManual = self.calc.offset_settings['Manual']
         for key in ['min','max','step','offset','offset_sig','mu','sigma']:
             self.calc.offset_settings[key] = self.__dict__[key].value()
         if self.AutoOffset.isChecked():
             self.calc.offset_settings['Manual'] = False
-            if premanual == False:
-                return
+            if sender == 'AutoOffset' and preManual==False: return
         else:
             self.calc.offset_settings['Manual'] = True
-            if premanual == True:
-                return
+            if sender == 'ManualOffset' and preManual==True: return
         if self.GaussianPrior.isChecked():
             self.calc.offset_settings['GaussianPrior'] = True
         else:
@@ -192,11 +193,12 @@ class DataSetManager(QWidget):
                     self.__dict__[f'agreementLabel{i}'].setText(f'{curve}: {agreement:.2f}%')
                     self.threshLabel.setText(f'threshold: {threshold:.2f}%')
                     if self.calc.offset_settings['Manual']:
-                        self.__dict__[f'offsetLabel{i}'].setText('')
+                        self.__dict__[f'offsetLabel{i}'].setEnabled(False)
                     else:
-                        self.__dict__[f'offsetLabel{i}'].setText(
-                            f'{curve}: {self.calc.data[curve]["offset"]:.1f} ± {self.calc.data[curve]["offset_sig"]:.1f}')
-                except:
+                        self.__dict__[f'offsetLabel{i}'].setEnabled(True)
+                    self.__dict__[f'offsetLabel{i}'].setText(
+                        f'{curve}: {self.calc.data[curve]["offset"]:.1f} ± {self.calc.data[curve]["offset_sig"]:.1f}')
+                except Exception as e:
                     self.__dict__[f'agreementLabel{i}'].setText('')
                     self.__dict__[f'offsetLabel{i}'].setText('')
             else:

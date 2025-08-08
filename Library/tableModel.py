@@ -5,6 +5,7 @@ from scipy.interpolate import interp1d
 from Library.dataMager import Calculator
 from PyQt5.Qt import QFont, QColor
 from numpy import linspace,random,sin, exp, where, zeros, argmax,append, log,exp, arange,diff,ones,split,argsort,array, insert, append, delete,nan
+from PyQt5.QtCore import QTimer
 
 
 class MyTableModel(QAbstractTableModel):
@@ -140,6 +141,9 @@ class MyTableModel(QAbstractTableModel):
                 self.formats[key] = ['%.2f %%',100]
                 self.Headerformats[key] = f'Agreement\n{curve}'
         self.endResetModel()
+        
+        # Add this line to adjust scroll area width after model update
+        QTimer.singleShot(0, self.parent.adjust_scrollarea_width)
 
     def insertRows(self, position, rows=1, parent=QModelIndex()):
         self.beginInsertRows(parent, position, position + rows - 1)
@@ -164,8 +168,6 @@ class MyTableModel(QAbstractTableModel):
             else:
                 self.data['active'][row] = True
             self.calc.recalc_wiggledata()
-            #self.calc.calc_bayesian_prob()
-            #self.calc.calc_percentile_ranges()
             self.parent.recalcFlag = True
             self.parent.recalcIndex = self.tabIndex
             self.parent.redraw()
@@ -198,6 +200,8 @@ class MyTableModel(QAbstractTableModel):
         if len(self.sortind) != len(self.data['year']):
             self.sort(self.sort_column,self.order)
         self.endResetModel()
+        # Add this line to adjust scroll area width after adding data
+        QTimer.singleShot(0, self.parent.adjust_scrollarea_width)
 
     def removeRows(self, row, count=1, parent=QModelIndex()):
         self.beginRemoveRows(parent, row, row + count - 1)
@@ -209,6 +213,10 @@ class MyTableModel(QAbstractTableModel):
         self.parent.recalcFlag = True
         self.parent.ecalcIndex = self.parent.tabWidget.currentIndex()
         self.endRemoveRows()
+
+        # Add this line to adjust scroll area width after removing rows
+        QTimer.singleShot(0, self.parent.adjust_scrollarea_width)
+        
         return True
 
     def sort(self, column, order):
@@ -223,3 +231,4 @@ class MyTableModel(QAbstractTableModel):
         if order == Qt.DescendingOrder:
             self.sortind = self.sortind[::-1]
         self.layoutChanged.emit()
+

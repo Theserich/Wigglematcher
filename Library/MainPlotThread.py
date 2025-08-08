@@ -105,7 +105,7 @@ class MainPLotWorker(QThread):
                 dy = calc.data[curve]['fm_sig_corr'][calc.wiggledata['active']]
                 if self.ageplot:
                     y = -8033 * log(y)
-                    dy = 8033 / calc.wigglefms * dy
+                    dy = 8033 /  calc.data[curve]['fm_corr'][calc.wiggledata['active']] * dy
                 label = f'{calc.plotsettings["dataName"]} {curve}'
                 self.data['errorbar'].append({'x': x, 'y': y, 'yerr': dy, 'color': color, 'label': label})
                 #ax0.errorbar(x, y, yerr=dy, capsize=3, color=color, fmt='x',alpha=0.5,label=label)

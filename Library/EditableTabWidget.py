@@ -5,10 +5,15 @@ class EditableTabWidget(QTabWidget):
         QTabWidget.__init__(self,*args,**kwargs)
         # Enable double-click renaming
         self.tabBarDoubleClicked.connect(self.edit_tab_name)
+        self.tabBarClicked.connect(self.adjustWidgetWidth)
         # Temporary line edit for renaming
         self.line_edit = QLineEdit(self)
         self.line_edit.setHidden(True)
         self.line_edit.editingFinished.connect(self.rename_tab)
+
+    def adjustWidgetWidth(self):
+        parent = self.get_top_parent(self)
+        parent.adjust_scrollarea_width()
 
     def edit_tab_name(self, index):
         """Enable editing when double-clicking a tab."""
