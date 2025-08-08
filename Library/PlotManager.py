@@ -35,6 +35,13 @@ class PlotManager:
         self.figure, ax = plt.subplots(1)
         self.ax.append(ax)
         self.ax.append(ax.twinx())  # Second y-axis
+        self.figure.patch.set_facecolor('none')
+        self.figure.patch.set_alpha(0.0)
+
+        # Make axes transparent
+        for ax in self.ax:
+            ax.patch.set_facecolor('none')
+            ax.patch.set_alpha(0.0)
 
         # Create canvas
         self.canvas = FigureCanvas(self.figure)

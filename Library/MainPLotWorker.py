@@ -15,8 +15,13 @@ class MplCanvas(FigureCanvas):
         self.fig, self.ax = plt.subplots(2,sharex=True)
         self.ax2 = self.ax[0].twiny()
         super().__init__(self.fig)
+
+        self.fig.patch.set_facecolor('none')
+        self.fig.patch.set_alpha(0.0)
+        # Keep existing transparent axes
         self.ax[0].set_facecolor('none')
         self.ax[1].set_facecolor('none')
+
         self.ax[0].tick_params(axis='x', which='both', bottom=False)
         self.fig.subplots_adjust(hspace=0)
         self.calcs = []

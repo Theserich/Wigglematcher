@@ -180,6 +180,7 @@ class Calculator:
             self.data[curve]['A_n'] = A_n
             self.data[curve]['offsetprob'] = posterior_offset
             self.data[curve]['offsetps'] = ps_likelihood
+            self.data[curve]['likelihoods'] = likelyhoods
             self.wiggledata[f'{curve}A_i'] = A_is
             offset = testoffsets[argmax(posterior_offset)]
             cdf = cumsum(posterior_offset)
