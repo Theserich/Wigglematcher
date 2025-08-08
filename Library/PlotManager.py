@@ -37,6 +37,13 @@ class PlotManager:
         self.ax.append(ax.twinx())  # Second y-axis
         self.figure.patch.set_facecolor('none')
         self.figure.patch.set_alpha(0.0)
+        self.figure.subplots_adjust(
+            left=0.08,  # Left margin
+            bottom=0.08,  # Bottom margin
+            right=0.92,  # Right margin
+            top=0.95,  # Top margin
+            hspace=0  # Keep existing horizontal spacing
+        )
 
         # Make axes transparent
         for ax in self.ax:
@@ -45,6 +52,11 @@ class PlotManager:
 
         # Create canvas
         self.canvas = FigureCanvas(self.figure)
+        #self.canvas.setAutoFillBackground(False)
+        #self.canvas.setAttribute(Qt.WA_OpaquePaintEvent, False)
+        #self.canvas.setAttribute(Qt.WA_NoSystemBackground, True)
+        self.parent_widget.setAttribute(Qt.WA_TranslucentBackground, True)
+        self.parent_widget.setStyleSheet("background-color: transparent;")
 
         # Configure axes styling
         self._setup_axes_styling()
