@@ -4,6 +4,7 @@ from PyQt5.QtCore import QThread, pyqtSignal
 
 class MainPLotWorker(QThread):
     finished = pyqtSignal(object)
+    finishedBool = pyqtSignal()
     def __init__(self,datasets,curveManager,curveColors,recalculate=False,recalcindex=None,ageplot=False):
         super().__init__()
         self.recalcindex = recalcindex
@@ -20,6 +21,7 @@ class MainPLotWorker(QThread):
         self.data['ax1fill'] = []
         self.data['axvline'] = []
         self.data['lines'] = []
+        self.data['ageplot'] = ageplot
 
     def run(self):
         if self.recalculate and self.recalcindex is None:
@@ -59,6 +61,7 @@ class MainPLotWorker(QThread):
         self.data['miny'] = self.miny
         self.data['maxy'] = self.maxy
         self.finished.emit(self.data)
+        self.finishedBool.emit()
 
     def plotCurve(self, curve,index, errorbar=False, color='C0'):
         window_length = self.curveManager.curve_windows[index]

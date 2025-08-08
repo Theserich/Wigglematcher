@@ -1,20 +1,23 @@
 from PyQt5.uic import loadUi
 from pathlib import Path
 import os
-from matplotlib.axis import Axis
+
 from Library.comset import read_settings, write_settings
 from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QFileDialog, QColorDialog,QMessageBox
 from PyQt5.Qt import Qt
 from Library.dataSetManager import DataSetManager
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas,NavigationToolbar2QT as NavigationToolbar
-from matplotlib import pyplot as plt
+from Library.PlotManager import PlotManager
 from Library.timer import timer
 from numpy import where, zeros, argmax,append, log, exp, arange,diff,ones,split, inf
 from Library.CurveManager import CurveManager
 from Library.MainPlotThread import MainPLotWorker
 import matplotlib
 from Library.ExcelWorker import ExcelWorker
-
+from matplotlib import pyplot as plt
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas, NavigationToolbar2QT as NavigationToolbar
+from PyQt5.QtWidgets import QVBoxLayout
+from PyQt5.Qt import Qt
+from numpy import log, where, zeros, arange, diff, split, inf, nanargmax
 matplotlib.use("Qt5Agg")
 
 
@@ -56,6 +59,7 @@ class WidgetMain(QMainWindow):
         self.recalcIndex = None
         self.threads = []
         self.plotworker_cleanup_in_progress = False
+        self.plot_manager = PlotManager(self.widget, self.curveManager)
         self.redraw()
 
     def safely_start_worker(self):
@@ -73,16 +77,28 @@ class WidgetMain(QMainWindow):
         self._start_worker_internal()
 
     def _on_plotworker_cleanup_done(self):
+        for dataset in self.datasets:
+            dataset.update_all()
         self.plotworker.finished.disconnect(self._on_plotworker_cleanup_done)
-        self.plotworker.finished.disconnect(self.figure_updated)
+        self.plotworker.finished.disconnect(self.plot_manager.plot_datasets)
+        self.plotworker.finishedBool.disconnect(self.cleanup)
+
         self.plotworker_cleanup_in_progress = False
         self._start_worker_internal()
 
     def _start_worker_internal(self):
         self.plotworker = MainPLotWorker(self.datasets,self.curveManager,self.curveColors,recalculate=self.recalcFlag,recalcindex=self.recalcIndex,ageplot=self.ageplot)
-        self.plotworker.finished.connect(self.figure_updated)
+        self.plotworker.finished.connect(self.plot_manager.plot_datasets)
+        self.plotworker.finishedBool.connect(self.cleanup)
         self.plotworker.start()
 
+    def cleanup(self):
+        self.threads = [t for t in self.threads if t.isRunning()]
+        if len(self.threads) == 0:
+            self.progressBar.setRange(0, 100)
+            self.progressBar.setValue(0)
+        self.recalcFlag = False
+        self.recalcIndex = None
 
     @timer
     def redraw(self):
@@ -139,186 +155,10 @@ class WidgetMain(QMainWindow):
             self.redraw()
 
 
-    def initialize_plot(self):
-        p = self.widget.palette()
-        p.setColor(self.backgroundRole(), Qt.white)
-        self.setPalette(p)
-        self.plot_layout = QVBoxLayout(self.widget)
-        self.ax = []
-        self.figure, ax = plt.subplots(1)
-        self.ax.append(ax)
-        self.ax.append(ax.twinx())
-        self.canvas = FigureCanvas(self.figure)
-        #self.ax2 = self.ax[0].twiny()
-        self.errorbarlines = []
-        self.vlines = []
-        self.figure.subplots_adjust(hspace=-1)
-        #self.ax2.set_xlim(self.ax[0].get_xlim())
-        #self.ax2.set_xlabel('Year BP')
-        #self.ax2.xaxis.set_label_position('top')
-        #self.ax2.spines['bottom'].set_visible(False)
-        self.ax[0].set_facecolor('none')
-        self.ax[1].set_facecolor('none')
-        self.ax[0].tick_params(axis='x', which='both', bottom=False)
-        self.ax[1].set_xlabel('calendaryear')
-        self.ax[0].set_ylabel('F$^{14}$C')
-        self.ax[1].yaxis.set_label_position('right')
-        self.ax[1].set_ylabel('probability density')
-        self.ax[1].yaxis.tick_right()
-        self.ax[0].spines['bottom'].set_visible(False)
-        self.ax[1].spines['top'].set_visible(False)
-        self.addToolBar(Qt.BottomToolBarArea, NavigationToolbar(self.canvas, self))
-        self.plot_layout.addWidget(self.canvas)
-
-    def initialize_plot2(self):
-        p = self.widget.palette()
-        p.setColor(self.backgroundRole(), Qt.white)
-        self.setPalette(p)
-        self.plot_layout = QVBoxLayout(self.widget)
-        self.canvas = None
-        #self.addToolBar(Qt.BottomToolBarArea, NavigationToolbar(self.canvas, self))
-        self.plot_layout.addWidget(self.canvas)
-
-
     def changeToAge(self):
         for dataset in self.datasets:
             dataset.tableModel.updateHeader()
         self.redraw()
-
-    def figure_updated(self,dataset):
-        legend = self.ax[0].get_legend()
-        if legend is not None:
-            legend.remove()
-        for errorbar in self.errorbarlines:
-            errorbar.set_label(None)
-        self.errorbarlines = []
-        for vline in self.vlines:
-            vline.remove()
-        self.vlines = []
-        for x in self.ax:
-            for line in x.lines[:]:
-                try:
-                    line.remove()
-                except ValueError:
-                    pass
-            for line in self.errorbarlines:
-                for bar in line[1]:
-                    bar.remove()
-            for collection in x.collections[:]:
-                try:
-                    collection.remove()
-                except ValueError:
-                    pass
-            for container in x.containers[:]:
-                for artist in list(container):
-                    if isinstance(artist, tuple):
-                        for item in artist:
-                            try:
-                                item.remove()
-                            except ValueError:
-                                pass
-                    else:
-                        try:
-                            artist.remove()
-                        except ValueError:
-                            pass
-        maxy = -inf
-        miny = inf
-        for data in dataset['errorbar']:
-            errorbar_plot = self.ax[0].errorbar(data['x'], data['y'], data['yerr'], label=data['label'],color=data['color'],fmt='x',alpha=0.8)
-            self.errorbarlines.append(errorbar_plot)
-        for data in dataset['ax0fill']:
-            self.ax[0].fill_between(data['x'], data['y0'], data['y1'], label=data['label'],color=data['color'],alpha=0.6,lw=0)
-        for data in dataset['ax1fill']:
-            if max(data['y1'])>maxy:
-                maxy = max(data['y1'])
-            if min(data['y0'])<miny:
-                miny = min(data['y0'])
-            self.ax[1].fill_between(data['x'], data['y0'], data['y1'], label=data['label'],color=data['color'],alpha=0.6,lw=0)
-        for data in dataset['axvline']:
-            vline = self.ax[1].axvline(data['x'], ymax=data['ymax'], label=data['label'],color=data['color'])
-            self.vlines.append(vline)
-        self.ax[0].legend(frameon=False)
-        self.minx = dataset['minx']
-        self.maxx = dataset['maxx']
-        self.miny = dataset['miny']
-        self.maxy = dataset['maxy']
-        try:
-            self.ax[1].set_xlim(left=self.minx, right=self.maxx)
-        except:
-            pass
-        try:
-            self.ax[0].set_ylim(bottom=self.miny, top=self.maxy)
-        except:
-            pass
-        try:
-            self.ax[1].set_ylim(bottom=0, top=maxy)
-        except:
-            pass
-        overlap = 0.75
-        ylim = self.ax[0].get_ylim()
-        dy = ylim[1] - ylim[0]
-        self.ax[0].set_ylim(bottom=ylim[0] - dy * overlap, top=ylim[1])
-        ylim = self.ax[1].get_ylim()
-        dy = ylim[1] - ylim[0]
-        self.ax[1].set_ylim(bottom=ylim[0], top=ylim[1] + dy * overlap)
-        dy = ylim[1] + dy * overlap
-        for data in dataset['lines']:
-            self.ax[1].plot(data['x'], -0.01*dy-0.02*data['y']*dy, label=data['label'], color=data['color'],lw=5, alpha=0.4)
-        self.ax[1].set_ylim(bottom=-0.05*dy)
-        ageplot = self.ageBox.isChecked()
-        if ageplot:
-            self.ax[0].set_ylabel('$^{14}$C age in years')
-        else:
-            self.ax[0].set_ylabel('F$^{14}$C')
-        self.canvas.draw_idle()
-
-        self.threads = [t for t in self.threads if t.isRunning()]
-        if len(self.threads)==0:
-            self.progressBar.setRange(0, 100)
-            self.progressBar.setValue(0)
-        self.recalcFlag = False
-        self.recalcIndex = None
-
-        for dataset in self.datasets:
-            dataset.update_all()
-
-
-    def setBounds(self,overlap):
-        ax = self.ax
-        n = len(ax)
-        xlim = ax[0].get_xlim()
-        xticks = ax[0].get_xticks()
-        for i, x in enumerate(ax):
-            ticks = x.get_yticks()
-            dticks = ticks[1] - ticks[0]
-            maxy = max(ticks)
-            miny = min(ticks)
-            dy = maxy - miny
-            nonscaletotheight = n * dy
-            totheight = nonscaletotheight - (n - 1) * overlap * dy
-            top = maxy + i * (1 - overlap) * dy
-            bottom = top - totheight
-            ylabelheight = (miny - bottom + dy / 2) / totheight
-            labelheight = (miny + 0.8 * dy - bottom) / totheight
-            if i % 2 == 0:
-                x.yaxis.tick_left()
-                x.spines['left'].set_bounds((ticks[1], ticks[-2]))
-                x.spines['right'].set_visible(False)
-                Axis.set_label_coords(x.yaxis, 1.07, ylabelheight)
-            else:
-                x.yaxis.tick_right()
-                x.spines['right'].set_bounds((ticks[1], ticks[-2]))
-                x.spines['left'].set_visible(False)
-                Axis.set_label_coords(x.yaxis, 1 + 0.05, ylabelheight)
-            x.set_ylim(top=top, bottom=bottom)
-            x.set_yticks(ticks[1:-1])
-            x.spines['top'].set_visible(False)
-            if i == 0:
-                x.spines['bottom'].set_bounds((xticks[1], xticks[-2]))
-            else:
-                x.spines['bottom'].set_visible(False)
-
 
 
     def saveData(self):
@@ -362,7 +202,7 @@ class WidgetMain(QMainWindow):
     def load_settings(self):
         height = self.settings['windowheight']
         width = self.settings['windowwidth']
-        self.initialize_plot()
+        #self.initialize_plot()
         self.resize(width, height)
         posx = self.settings['posx']
         posy = self.settings['posy']
@@ -423,5 +263,3 @@ class WidgetMain(QMainWindow):
                 index = self.curveBox0.findText(label)
                 if index != -1:  # -1 means not found
                     self.curveBox0.setCurrentIndex(index)
-
-

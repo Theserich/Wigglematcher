@@ -56,6 +56,7 @@ class DataSetManager(QWidget):
         self.changing = False
         self.shiftEdit.valueChanged.connect(self.changeShift)
         self.offsetSlider.valueChanged.connect(self.changeOffset)
+        self.offset.valueChanged.connect(self.changeOffset)
         self.set_Agreement_and_OffsetLabels()
         self.tableView.resizeColumnsToContents()
         self.plotWorkers = []
