@@ -270,27 +270,24 @@ class WidgetMain(QMainWindow):
         """Adjust the scroll area width to fit table content without horizontal scrollbar"""
         # Get the table view
         curentTabIndex = self.tabWidget.currentIndex()
+        if curentTabIndex == -1:
+            return
         table_view = self.datasets[curentTabIndex].tableView
         model = table_view.model()
-        # Calculate total width needed for all columns
-        total_width = 0
 
-        # Add width of all columns
+        total_width = 0
         for column in range(model.columnCount()):
             total_width += table_view.columnWidth(column)
 
-        # Add some padding for borders, scrollbars, etc.
-        padding = 70  # Adjust this value as needed
+        padding = 70
 
-        # Add width of vertical scrollbar if present
         if table_view.verticalScrollBar().isVisible():
             total_width += table_view.verticalScrollBar().width()
 
-        # Set the scroll area width
         required_width = total_width + padding
         self.scrollarea.setFixedWidth(required_width)
-        # Optionally, you can also set a maximum width to prevent it from becoming too wide
-        max_width = 1500  # Adjust as needed
+
+        max_width = 1500
         if required_width > max_width:
             self.scrollarea.setFixedWidth(max_width)
             # Re-enable horizontal scrolling if content is too wide
