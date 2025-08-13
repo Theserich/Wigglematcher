@@ -78,9 +78,9 @@ class WidgetMain(QMainWindow):
         self._start_worker_internal()
 
     def _on_plotworker_cleanup_done(self):
-
         self.plotworker.finished.disconnect(self._on_plotworker_cleanup_done)
         self.plotworker.finished.disconnect(self.plot_manager.plot_datasets)
+        self.plotworker.finished.disconnect(self.update_widgets)
         self.plotworker.finishedBool.disconnect(self.cleanup)
 
         self.plotworker_cleanup_in_progress = False
@@ -89,6 +89,7 @@ class WidgetMain(QMainWindow):
     def _start_worker_internal(self):
         self.plotworker = MainPLotWorker(self.datasets,self.curveManager,self.curveColors,recalculate=self.recalcFlag,recalcindex=self.recalcIndex,ageplot=self.ageplot)
         self.plotworker.finished.connect(self.plot_manager.plot_datasets)
+        self.plotworker.finished.connect(self.update_widgets)
         self.plotworker.finishedBool.connect(self.cleanup)
         self.plotworker.start()
 
@@ -102,8 +103,6 @@ class WidgetMain(QMainWindow):
 
     @timer
     def redraw(self):
-        for dataset in self.datasets:
-            dataset.update_all()
         self.tabindex = self.tabWidget.currentIndex()
         if self.tabindex != -1:
             table = self.datasets[self.tabindex].tableView
@@ -116,6 +115,12 @@ class WidgetMain(QMainWindow):
         self.progressBar.setRange(0, 0)
         self.threads.append(self.plotworker)
         self.plotworker.start()
+
+    def update_widgets(self):
+        print('updating widgets')
+        for dataset in self.datasets:
+            dataset.update_all()
+
 
     def changeCurves(self):
         for i in range(self.Ncurves):

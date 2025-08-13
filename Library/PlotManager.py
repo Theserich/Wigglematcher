@@ -141,7 +141,6 @@ class PlotManager:
     def plot_datasets(self, datasets):
         """Plot all datasets with error bars and probability distributions"""
         self.clear_plot_elements()
-
         # Initialize bounds
         maxy = -inf
         miny = inf

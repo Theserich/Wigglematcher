@@ -246,6 +246,8 @@ class Calculator:
             ps[:] = exp(-((Ri - R) ** 2) / (2 * dRi2 + 2 * dR2)) / denom
             ps /= ps.sum(axis=1, keepdims=True)
             self.data[curve]['ps'] = ps
+            self.data[curve]['offset'] = self.offset
+            self.data[curve]['offset_sig'] = self.offset_sig
             return curve, self.data[curve]
         for curve in self.curves:
             c, data = process_curve(curve)
@@ -266,6 +268,7 @@ class Calculator:
             if curve is not None:
                 self.data[curve]['fm_corr'] = exp(-age_corr / 8033)
                 self.data[curve]['fm_sig_corr'] = self.wiggledata['fm_corr'] / 8033 * sig_corr
+
 
     def load_data(self,dataSetManager):
         start_folder = 'Library\\Data\\Wiggledata'

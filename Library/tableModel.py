@@ -81,6 +81,12 @@ class MyTableModel(QAbstractTableModel):
                         value = int(value)
                         if value < 1:
                             value = 1
+                    if key == 'fm_sig' or key == 'age_sig':
+                        if value < 0.001:
+                            value = 0.001
+                    if key == 'fm' or key == 'age':
+                        if value < 0:
+                            value = 0
                     self.data[key][row] = value
                     self.fmcalc = False
                     if key == 'fm' or key  == 'fm_sig':
@@ -89,7 +95,6 @@ class MyTableModel(QAbstractTableModel):
                         self.fmcalc = True
                 except ValueError:
                     breakflag = True
-                    print(value)
             if key in ['label']:
                 try:
                     self.data[key][row] = value

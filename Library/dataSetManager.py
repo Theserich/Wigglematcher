@@ -4,6 +4,7 @@ from Library.dataMager import Calculator,default_plot_settings,default_offset_se
 from Library.tableModel import MyTableModel
 from PyQt5.QtWidgets import QTableView, QPushButton, QLineEdit, QWidget, QColorDialog, QGridLayout, QCheckBox,QRadioButton,QButtonGroup
 from PyQt5.QtGui import QPalette
+from numpy import searchsorted
 from Library.comset import *
 import pickle
 from copy import copy
@@ -14,7 +15,7 @@ from Library.PlotWorker import PLotWorker,PlotWindow
 from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5.QtCore import QTimer
 from pathlib import Path
-
+from PyQt5.QtCore import Qt
 
 class DataSetManager(QWidget):
     def __init__(self,widget,index,loadData=False):
@@ -187,23 +188,30 @@ class DataSetManager(QWidget):
     def set_Agreement_and_OffsetLabels(self):
         for i,curve in enumerate(self.calc.curves):
             if curve is not None:
-                try:
-                    agreement = self.calc.data[curve]['A']*100
-                    threshold = self.calc.data[curve]['A_n']*100
-                    self.__dict__[f'agreementLabel{i}'].setText(f'{curve}: {agreement:.2f}%')
-                    self.threshLabel.setText(f'threshold: {threshold:.2f}%')
-                    if self.calc.offset_settings['Manual']:
-                        self.__dict__[f'offsetLabel{i}'].setEnabled(False)
-                    else:
-                        self.__dict__[f'offsetLabel{i}'].setEnabled(True)
-                    self.__dict__[f'offsetLabel{i}'].setText(
-                        f'{curve}: {self.calc.data[curve]["offset"]:.1f} ± {self.calc.data[curve]["offset_sig"]:.1f}')
-                except Exception as e:
-                    self.__dict__[f'agreementLabel{i}'].setText('')
-                    self.__dict__[f'offsetLabel{i}'].setText('')
+                agreement = self.calc.data[curve]['A']*100
+                threshold = self.calc.data[curve]['A_n']*100
+                self.__dict__[f'agreementLabel{i}'].setText(f'{curve}: {agreement:.2f}%')
+                self.threshLabel.setText(f'threshold: {threshold:.2f}%')
+                if self.calc.offset_settings['Manual']:
+                    self.__dict__[f'offsetLabel{i}'].setEnabled(False)
+                else:
+                    self.__dict__[f'offsetLabel{i}'].setEnabled(True)
+                self.__dict__[f'offsetLabel{i}'].setText(
+                    f'{curve}: {self.calc.data[curve]["offset"]:.1f} ± {self.calc.data[curve]["offset_sig"]:.1f}')
             else:
                 self.__dict__[f'offsetLabel{i}'].setText('')
                 self.__dict__[f'agreementLabel{i}'].setText('')
+            try:
+                probdens = self.calc.data[curve]['probability']
+                years = self.calc.data[curve]['tyears']
+                index = searchsorted(years,max(self.calc.wiggledata['year'][self.calc.wiggledata['active']]))
+                prob = probdens[index]*100
+                self.__dict__[f'chronologyLabel{i}'].setText(f'{curve}: {prob:.2f}%')
+            except Exception as e:
+                self.__dict__[f'chronologyLabel{i}'].setText('')
+                print(e)
+
+
 
     def display_plot(self, data):
         (fig,name) = data
@@ -288,6 +296,7 @@ class DataSetManager(QWidget):
         del self.widget.datasets[self.tabIndex]
         for i, dataset in enumerate(self.widget.datasets):
             dataset.tabIndex = i
+            dataset.tableModel.tabIndex = i
         self.widget.redraw()
 
     def open_color_dialog(self):
