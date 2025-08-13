@@ -117,7 +117,6 @@ class WidgetMain(QMainWindow):
         self.plotworker.start()
 
     def update_widgets(self):
-        print('updating widgets')
         for dataset in self.datasets:
             dataset.update_all()
 
