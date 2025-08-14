@@ -55,11 +55,12 @@ class MainPLotWorker(QThread):
         for i, curve in enumerate(self.curves):
             if curve is None:
                 continue
-            self.plotCurve(curve,i, color=self.curveColors[i], errorbar=False)
+            self.plotCurve(curve, i, color=self.curveColors[i], errorbar=False)
         self.data['minx'] = self.minx
         self.data['maxx'] = self.maxx
         self.data['miny'] = self.miny
         self.data['maxy'] = self.maxy
+
         self.finished.emit(self.data)
         self.finishedBool.emit()
 
@@ -74,14 +75,13 @@ class MainPLotWorker(QThread):
             dy = 8033/data[f'fm']*dy
         self.data['ax0fill'].append({'x':x,'y0':y-dy,'y1':y+dy,'color':color,'label':curve})
         #self.ax[0].fill_between(x, y - dy, y + dy, color=color, alpha=0.5, lw=0, label=curve)
-        indexes = where((x>self.minx) & (x<self.maxx))
-        try:
-            miny = min(y[indexes]-0.008)
-            maxy = max(y[indexes]+0.008)
-            self.maxy = max(maxy,self.maxy)
-            self.miny = min(miny,self.miny)
-        except:
-            pass
+        if self.minx == inf: self.minx = min(x)
+        if self.maxx == -inf: self.maxx = max(x)
+        indexes = where((x>=self.minx) & (x<=self.maxx))
+        miny = min(y[indexes]-0.008)
+        maxy = max(y[indexes]+0.008)
+        self.maxy = max(maxy,self.maxy)
+        self.miny = min(miny,self.miny)
 
     def plot_calc(self,calc,index):
         curve = self.curves[index]
@@ -136,7 +136,6 @@ class MainPLotWorker(QThread):
                 if all(m_seg):
                     if len(x_seg) == 1:  # If the segment has only one point, mark it
                         self.data['lines'].append({'x':[x_seg - 0.3+calc.shift, x_seg + 0.3+calc.shift],'y':array([index, index]), 'color':color,'label':None})
-                        #self.ax[1].plot([x_seg - 0.5, x_seg + 0.5], [y_lvl, y_lvl], color=, lw=3, alpha=0.4)
                         self.maxx = max(self.maxx, x_seg - 0.3+calc.shift)
                         self.minx = min(self.minx, x_seg + 0.3+calc.shift)
                     else:
@@ -146,7 +145,6 @@ class MainPLotWorker(QThread):
                         self.minx = min(self.minx, x0 - rangeadd)
                         self.data['lines'].append(
                             {'x': [x0,x1], 'y': array([index, index]), 'color': color, 'label': None})
-                        #self.ax[1].plot([min(x_seg), max(x_seg)], [y_lvl, y_lvl], color=calc.plotsettings['colors'][index], alpha=0.4, lw=3)
 
 
 

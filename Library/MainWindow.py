@@ -49,7 +49,6 @@ class WidgetMain(QMainWindow):
                 self.__dict__[f'curveBox{i}'].setCurrentIndex(index)
         self.ageBox.stateChanged.connect(self.changeToAge)
         self.addDatasetButton.clicked.connect(self.addDataset_tab)
-        self.showButton.clicked.connect(self.redraw)
         self.actionLoad_in_Curve.triggered.connect(self.load_Oxcal_curve)
         self.actionLoad_in_curve_from_xlsx.triggered.connect(lambda: self.curveManager.load_excel_curve(self))
         self.actionSave_results_to_xlsx.triggered.connect(self.saveData)
@@ -66,7 +65,6 @@ class WidgetMain(QMainWindow):
     def safely_start_worker(self):
         if self.plotworker_cleanup_in_progress:
             return  # Prevent overlapping cleanup
-
         if hasattr(self, 'plotworker') and self.plotworker is not None:
             if self.plotworker.isRunning():
                 self.plotworker_cleanup_in_progress = True
@@ -74,7 +72,6 @@ class WidgetMain(QMainWindow):
                 self.plotworker.quit()
                 self.plotworker.wait()
                 return
-
         self._start_worker_internal()
 
     def _on_plotworker_cleanup_done(self):
@@ -291,6 +288,8 @@ class WidgetMain(QMainWindow):
         required_width = total_width + padding
         self.scrollarea.setFixedWidth(required_width)
 
+        #width2 = self.datasets[curentTabIndex].groupBox_2.width() + padding
+        #required_width = max(width2, required_width)
         max_width = 1500
         if required_width > max_width:
             self.scrollarea.setFixedWidth(max_width)
@@ -299,3 +298,4 @@ class WidgetMain(QMainWindow):
         else:
             # Disable horizontal scrolling since everything fits
             table_view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+

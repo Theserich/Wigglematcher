@@ -209,7 +209,7 @@ class DataSetManager(QWidget):
                 self.__dict__[f'chronologyLabel{i}'].setText(f'{curve}: {prob:.2f}%')
             except Exception as e:
                 self.__dict__[f'chronologyLabel{i}'].setText('')
-                print(e)
+                #print(e)
 
 
 
@@ -264,7 +264,7 @@ class DataSetManager(QWidget):
                         if key not in self.calc.offset_settings:
                             self.calc.offset_settings[key] = default_offset_settings[key]
             except Exception as e:
-                print(e)
+                print(type(e),e)
                 self.calc = Calculator(self.widget.curveManager)
                 self.calc.dataName = f'Tab {self.tabIndex}'
                 self.calc.plotsettings['colors'] = copy(self.widget.curveColors)

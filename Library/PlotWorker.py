@@ -3,7 +3,7 @@ import io
 from matplotlib import pyplot as plt
 from Library.dataMager import Calculator
 from Library.HelperFunctions import fast_random_combinations
-from numpy import ones, arange,zeros, cumsum,inf,searchsorted, max as npmax, argsort
+from numpy import ones, arange,zeros, cumsum,inf,searchsorted, max as npmax, argsort, meshgrid,argmax
 from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5.QtWidgets import QMainWindow,QVBoxLayout, QWidget
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -65,9 +65,11 @@ class PLotWorker(QThread):
 
     def run(self):
         if self.plotButton == 'consitencyPLotButton'or self.plotButton == 'consitencyPLotButton2':
-            self.plotConsistency()
+            #self.plotConsistency()
+            self.plotOffsetFit()
         elif self.plotButton == 'individualPLotButton' or self.plotButton == 'individualPLotButton2':
             self.plotIndividual()
+
         else:
             return
         self.finished.emit((self.fig, self.plotButton))
@@ -164,7 +166,44 @@ class PLotWorker(QThread):
         self.ax.spines['top'].set_visible(False)
         self.ax.xaxis.grid()
 
-
+    def plotOffsetFit(self):
+        left = 0.1
+        bottom = 0.1
+        height = 0.85
+        width = 0.85
+        main_box = [left, bottom, width * 0.8, height * 0.8]
+        top_box = [left, bottom + height * 0.8, width * 0.8, height * 0.2]
+        right_box = [left + width * 0.8, bottom, width * 0.2, height * 0.8]
+        if self.calc.offset_settings['Manual']:
+            return
+        self.fig = Figure()
+        self.ax = self.fig.add_axes(main_box)
+        #self.ax.set_title(self.curve)
+        pt = self.calc.data[self.curve]['probability']
+        x = self.calc.data[self.curve]['tyears']
+        y = self.calc.data[self.curve]['testoffsets']
+        likelihood = self.calc.data[self.curve]['likelihoods']
+        agreements = self.calc.wiggledata[f'{self.curve}A_i'][self.calc.wiggledata['active']]
+        X, Y = meshgrid(x, y)
+        self.ax.contourf(X, Y, likelihood, cmap=plt.cm.Purples)
+        self.ax.set_ylabel('Offset in $^{14}$C years')
+        ax_top = self.fig.add_axes(top_box, sharex=self.ax)
+        ax_top.plot(x, pt, color='black')
+        ax_right = self.fig.add_axes(right_box, sharey=self.ax)
+        ax_right.plot(self.calc.data[self.curve]['offsetprob'], y, color='black')
+        ax_right.plot(self.calc.data[self.curve]['offsetprior'], y, color='black', alpha=0.5)
+        ax_right.axis('off')
+        ax_top.axis('off')
+        try:
+            maxyear = x[argmax(pt)]
+            self.ax.set_xlim((maxyear - 20.5, maxyear + 20.5))
+        except:
+            pass
+        try:
+            maxoffset = y[argmax(self.calc.data[self.curve]['offsetprob'])]
+            self.ax.set_ylim((maxoffset - 20.5, maxoffset + 20.5))
+        except:
+            pass
 
 def get_indexes(ps):
     lower= inf

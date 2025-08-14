@@ -187,13 +187,6 @@
         </property>
        </widget>
       </item>
-      <item row="2" column="2">
-       <widget class="QPushButton" name="consitencyPLotButton2">
-        <property name="text">
-         <string>Plot Graph</string>
-        </property>
-       </widget>
-      </item>
       <item row="1" column="1">
        <widget class="QPushButton" name="individualPLotButton">
         <property name="text">
@@ -208,17 +201,24 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="2">
-       <widget class="QPushButton" name="consitencyPLotButton">
-        <property name="text">
-         <string>Plot  Graph</string>
-        </property>
-       </widget>
-      </item>
       <item row="3" column="0">
        <widget class="QLabel" name="threshLabel">
         <property name="text">
          <string>threshLabel</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="2">
+       <widget class="QPushButton" name="consitencyPLotButton">
+        <property name="text">
+         <string>show fit</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="2">
+       <widget class="QPushButton" name="consitencyPLotButton2">
+        <property name="text">
+         <string>show fit</string>
         </property>
        </widget>
       </item>
@@ -249,41 +249,30 @@
       <property name="spacing">
        <number>3</number>
       </property>
-      <item row="1" column="0" colspan="3">
-       <widget class="QRadioButton" name="AutoOffset">
+      <item row="0" column="0">
+       <widget class="QRadioButton" name="ManualOffset">
         <property name="text">
-         <string>Automatic Offset</string>
+         <string>Manual Offset</string>
         </property>
         <property name="checkable">
          <bool>true</bool>
         </property>
-        <property name="autoExclusive">
+        <property name="checked">
          <bool>true</bool>
         </property>
        </widget>
       </item>
-      <item row="3" column="0">
-       <widget class="QDoubleSpinBox" name="min">
-        <property name="maximumSize">
-         <size>
-          <width>50</width>
-          <height>16777215</height>
-         </size>
+      <item row="3" column="3" colspan="2">
+       <widget class="QLabel" name="label_2">
+        <property name="text">
+         <string>Stepsize:</string>
         </property>
-        <property name="buttonSymbols">
-         <enum>QAbstractSpinBox::NoButtons</enum>
-        </property>
-        <property name="decimals">
-         <number>1</number>
-        </property>
-        <property name="minimum">
-         <double>-500.000000000000000</double>
-        </property>
-        <property name="maximum">
-         <double>500.000000000000000</double>
-        </property>
-        <property name="value">
-         <double>-100.000000000000000</double>
+       </widget>
+      </item>
+      <item row="2" column="0" colspan="3">
+       <widget class="QLabel" name="label">
+        <property name="text">
+         <string>Offset test range:</string>
         </property>
        </widget>
       </item>
@@ -313,67 +302,13 @@
         </property>
        </widget>
       </item>
-      <item row="3" column="5">
-       <widget class="QDoubleSpinBox" name="step">
-        <property name="buttonSymbols">
-         <enum>QAbstractSpinBox::NoButtons</enum>
-        </property>
-        <property name="minimum">
-         <double>0.050000000000000</double>
-        </property>
-        <property name="value">
-         <double>1.000000000000000</double>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="3" colspan="2">
-       <widget class="QLabel" name="label_2">
-        <property name="text">
-         <string>Stepsize:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="3" colspan="3">
-       <widget class="QLabel" name="offsetLabel0">
-        <property name="text">
-         <string>Offset1</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="3" colspan="3">
-       <widget class="QLabel" name="offsetLabel1">
-        <property name="text">
-         <string>Offset2</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="0">
-       <widget class="QRadioButton" name="ManualOffset">
-        <property name="text">
-         <string>Manual Offset</string>
-        </property>
-        <property name="checkable">
-         <bool>true</bool>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="8">
-       <widget class="QLabel" name="label_3">
-        <property name="text">
-         <string>+-</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="9">
-       <widget class="QDoubleSpinBox" name="offset_sig">
-        <property name="enabled">
-         <bool>true</bool>
-        </property>
-        <property name="layoutDirection">
-         <enum>Qt::RightToLeft</enum>
+      <item row="3" column="0">
+       <widget class="QDoubleSpinBox" name="min">
+        <property name="maximumSize">
+         <size>
+          <width>50</width>
+          <height>16777215</height>
+         </size>
         </property>
         <property name="buttonSymbols">
          <enum>QAbstractSpinBox::NoButtons</enum>
@@ -381,19 +316,31 @@
         <property name="decimals">
          <number>1</number>
         </property>
+        <property name="minimum">
+         <double>-500.000000000000000</double>
+        </property>
         <property name="maximum">
-         <double>50.000000000000000</double>
+         <double>500.000000000000000</double>
+        </property>
+        <property name="value">
+         <double>-100.000000000000000</double>
         </property>
        </widget>
       </item>
-      <item row="2" column="0" colspan="3">
-       <widget class="QLabel" name="label">
+      <item row="1" column="0" colspan="3">
+       <widget class="QRadioButton" name="AutoOffset">
         <property name="text">
-         <string>Offset test range:</string>
+         <string>Automatic Offset</string>
+        </property>
+        <property name="checkable">
+         <bool>true</bool>
+        </property>
+        <property name="autoExclusive">
+         <bool>true</bool>
         </property>
        </widget>
       </item>
-      <item row="1" column="6" rowspan="4" colspan="7">
+      <item row="1" column="7" rowspan="4" colspan="8">
        <widget class="QGroupBox" name="groupBox_3">
         <property name="title">
          <string/>
@@ -461,6 +408,59 @@
         </property>
         <property name="value">
          <double>100.000000000000000</double>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="5" colspan="2">
+       <widget class="QDoubleSpinBox" name="step">
+        <property name="buttonSymbols">
+         <enum>QAbstractSpinBox::NoButtons</enum>
+        </property>
+        <property name="minimum">
+         <double>0.050000000000000</double>
+        </property>
+        <property name="value">
+         <double>1.000000000000000</double>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="3" colspan="4">
+       <widget class="QLabel" name="offsetLabel0">
+        <property name="text">
+         <string>Offset1</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="3" colspan="4">
+       <widget class="QLabel" name="offsetLabel1">
+        <property name="text">
+         <string>Offset2</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="8">
+       <widget class="QLabel" name="label_3">
+        <property name="text">
+         <string>+-</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="9">
+       <widget class="QDoubleSpinBox" name="offset_sig">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="layoutDirection">
+         <enum>Qt::RightToLeft</enum>
+        </property>
+        <property name="buttonSymbols">
+         <enum>QAbstractSpinBox::NoButtons</enum>
+        </property>
+        <property name="decimals">
+         <number>1</number>
+        </property>
+        <property name="maximum">
+         <double>50.000000000000000</double>
         </property>
        </widget>
       </item>

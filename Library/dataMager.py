@@ -166,6 +166,7 @@ class Calculator:
             posterior_offset /= npsum(posterior_offset)
             dt_step = npabs(tyears[1] - tyears[0])
             ps = npsum(ps_likelihood, axis=0)
+            #ps = npsum(exp(ps), axis=0)
             A_is = empty(len_wig)
             for i in range(len_wig):
                 p = ps[i] / sum(ps[i])
@@ -178,6 +179,8 @@ class Calculator:
             self.data[curve]['ps'] = ps
             self.data[curve]['A'] = A
             self.data[curve]['A_n'] = A_n
+            self.data[curve]['testoffsets'] = testoffsets
+            self.data[curve]['offsetprior'] = offsetprior
             self.data[curve]['offsetprob'] = posterior_offset
             self.data[curve]['offsetps'] = ps_likelihood
             self.data[curve]['likelihoods'] = likelyhoods
