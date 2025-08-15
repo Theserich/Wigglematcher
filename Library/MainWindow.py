@@ -24,7 +24,7 @@ matplotlib.use("Qt5Agg")
 class WidgetMain(QMainWindow):
     def __init__(self, path):
         self.plotFms = False
-        self.starfolder = 'Library\\Settings\\'
+        self.starfolder = Path('Library\\Settings\\')
         self.settings = read_settings('display_settings')
         super(WidgetMain, self).__init__()
         loadUi(path, self)
@@ -216,7 +216,7 @@ class WidgetMain(QMainWindow):
         for i,curve in enumerate(self.curveManager.curves):
             if curve == 'None':
                 self.curveManager.curves[i] = None
-        folder_path   = self.starfolder + 'DataSettings'
+        folder_path   = self.starfolder / 'DataSettings'
         os.makedirs(folder_path, exist_ok=True)
         pkl_files = [f for f in os.listdir(folder_path) if f.endswith(".pkl")]
         self.datasets = []
@@ -240,7 +240,7 @@ class WidgetMain(QMainWindow):
         self.settings['curves'] = curves
         self.settings['curveColors'] = self.curveColors
         self.settings['ageBool'] = self.ageBox.isChecked()
-        folder_path = self.starfolder+'DataSettings'
+        folder_path = self.starfolder/'DataSettings'
         for file_name in os.listdir(folder_path):
             file_path = os.path.join(folder_path, file_name)
             if os.path.isfile(file_path):  # Ensure it's a file, not a folder

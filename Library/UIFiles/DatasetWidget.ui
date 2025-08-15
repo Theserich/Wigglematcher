@@ -41,14 +41,14 @@
       <property name="spacing">
        <number>3</number>
       </property>
-      <item row="0" column="0">
-       <widget class="QCheckBox" name="plotCheckBox">
+      <item row="1" column="0">
+       <widget class="QPushButton" name="loadButton">
         <property name="text">
-         <string>PLot dataset</string>
+         <string>📁 Load data</string>
         </property>
        </widget>
       </item>
-      <item row="0" column="1">
+      <item row="2" column="1" colspan="2">
        <widget class="QProgressBar" name="progressBar2">
         <property name="enabled">
          <bool>true</bool>
@@ -61,7 +61,21 @@
         </property>
        </widget>
       </item>
-      <item row="0" column="2">
+      <item row="1" column="1">
+       <widget class="QPushButton" name="deleteButton">
+        <property name="text">
+         <string>🚫 Remove this set</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QCheckBox" name="plotCheckBox">
+        <property name="text">
+         <string>PLot dataset</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="3">
        <widget class="QProgressBar" name="progressBar">
         <property name="enabled">
          <bool>true</bool>
@@ -80,54 +94,93 @@
         </property>
        </widget>
       </item>
-      <item row="2" column="1">
-       <widget class="QPushButton" name="individualPLotButton2">
-        <property name="text">
-         <string>Plot individual</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="0">
-       <widget class="QLabel" name="agreementLabel1">
-        <property name="text">
-         <string>agreement1</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="QPushButton" name="individualPLotButton">
-        <property name="text">
-         <string>Plot individual</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
+      <item row="3" column="0">
        <widget class="QLabel" name="agreementLabel0">
         <property name="text">
          <string>agreement0</string>
         </property>
        </widget>
       </item>
-      <item row="3" column="0">
+      <item row="4" column="0">
+       <widget class="QLabel" name="agreementLabel1">
+        <property name="text">
+         <string>agreement1</string>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="0">
        <widget class="QLabel" name="threshLabel">
         <property name="text">
          <string>threshLabel</string>
         </property>
        </widget>
       </item>
-      <item row="1" column="2">
+      <item row="4" column="3">
+       <widget class="QPushButton" name="consitencyPLotButton2">
+        <property name="text">
+         <string>show fit</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="3">
        <widget class="QPushButton" name="consitencyPLotButton">
         <property name="text">
          <string>show fit</string>
         </property>
        </widget>
       </item>
-      <item row="2" column="2">
-       <widget class="QPushButton" name="consitencyPLotButton2">
+      <item row="3" column="1" colspan="2">
+       <widget class="QPushButton" name="individualPLotButton">
         <property name="text">
-         <string>show fit</string>
+         <string>Plot individual</string>
         </property>
        </widget>
+      </item>
+      <item row="4" column="1" colspan="2">
+       <widget class="QPushButton" name="individualPLotButton2">
+        <property name="text">
+         <string>Plot individual</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="4">
+       <spacer name="horizontalSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item row="4" column="4">
+       <spacer name="horizontalSpacer_2">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item row="2" column="4">
+       <spacer name="horizontalSpacer_3">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
       </item>
      </layout>
     </widget>
@@ -439,24 +492,10 @@
      </property>
     </widget>
    </item>
-   <item row="16" column="1">
-    <widget class="QPushButton" name="loadButton">
-     <property name="text">
-      <string>📁 Load data</string>
-     </property>
-    </widget>
-   </item>
-   <item row="16" column="2" colspan="2">
-    <widget class="QPushButton" name="deleteButton">
-     <property name="text">
-      <string>🚫 Remove this set</string>
-     </property>
-    </widget>
-   </item>
    <item row="6" column="1">
     <widget class="QPushButton" name="addButton">
      <property name="text">
-      <string>Add Date</string>
+      <string>➕ Add Date</string>
      </property>
     </widget>
    </item>
