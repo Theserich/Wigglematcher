@@ -1,5 +1,5 @@
 import copy
-
+import os
 from matplotlib import pyplot as plt
 
 from Library.HelperFunctions import *
@@ -64,14 +64,22 @@ class CurveManager():
 
 
     def save_curves(self):
-        folder = 'Library\\Data\\Curves\\'
+        folder = Path('Library\\Data\\Curves\\')
         for curve in self.data:
             data = self.data[key]
+            filename = f'{curve}.json'
             savedata = {}
             for key in data:
                 savedata[key] = list(data[key])
-            with open(Path(f'{folder}/{curve}.json'), 'wb') as file:
+            with open(Path(folder /filename), 'wb') as file:
                 json.dump(data, file)
+
+    def delete_curve(self,curve):
+        folder = Path('Library\\Data\\Curves\\')
+        filename = f'{curve}.json'
+        file_path = Path(folder /filename)
+        if os.path.exists(file_path):
+            os.remove(file_path)
 
     def save_curve(self, curve):
         folder = Path('Library') / 'Data' / 'Curves'
@@ -133,7 +141,7 @@ class CurveManager():
         return True
 
     def load_excel_curve(self, widget):
-        start_folder = Path('Library/Data/ExcelCurves')
+        start_folder = 'Library/Data/ExcelCurves'
         file_path, _ = QFileDialog.getOpenFileName(widget, "Open File", start_folder,
                                                    "All Files (*);;Excel files(*.xlsx)")
         label = Path(file_path).stem

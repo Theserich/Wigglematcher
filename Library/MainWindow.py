@@ -32,6 +32,7 @@ class WidgetMain(QMainWindow):
         self.Ncurves = 2
         for i in range(self.Ncurves):
             self.__dict__[f'curveBox{i}'].addItem('None')
+            self.__dict__[f'deleteButton{i}'].clicked.connect(self.remove_curve)
             self.__dict__[f'colorbutton{i}'].clicked.connect(self.open_color_dialog)
             self.__dict__[f'colorbutton{i}'].setStyleSheet(f"background-color: {self.curveColors[i]};")
             self.__dict__[f'spinBox{i}'].valueChanged.connect(self.change_displayed_curve_version)
@@ -60,6 +61,31 @@ class WidgetMain(QMainWindow):
         self.plot_manager = PlotManager(self.widget, self.curveManager)
         self.redraw()
         self.adjust_scrollarea_width()
+
+    def remove_curve(self):
+        """Not completely immplemented yet"""
+        sender = self.sender()
+        button = sender.objectName()
+        index = int(button[-1])
+        deleteCurve = self.__dict__[f'curveBox{index}'].currentText()
+        for i, curve in enumerate(self.curveManager.curves):
+            combo_box = self.__dict__[f'curveBox{i}']
+            if curve == deleteCurve:
+                self.curveManager.curves[i] = None
+                for dataset in self.datasets:
+                    dataset.calc.curves[i] = None
+            while True:
+                index = combo_box.findText(deleteCurve)
+                if index == -1:  # No more occurrences found
+                    break
+                combo_box.removeItem(index)
+        self.curveManager.curves[index] = None
+        del self.curveManager.data[deleteCurve]
+        self.curveManager.delete_curve(deleteCurve)
+        for dataset in self.datasets:
+            dataset.calc.curves[index] = None
+        self.recalcFlag = True
+        self.redraw()
 
     def safely_start_worker(self):
         if self.plotworker_cleanup_in_progress:

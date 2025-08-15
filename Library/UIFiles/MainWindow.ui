@@ -154,6 +154,42 @@
              </property>
             </widget>
            </item>
+           <item row="2" column="2">
+            <widget class="QPushButton" name="deleteButton0">
+             <property name="maximumSize">
+              <size>
+               <width>25</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="font">
+              <font>
+               <pointsize>6</pointsize>
+              </font>
+             </property>
+             <property name="text">
+              <string>🚫</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="2">
+            <widget class="QPushButton" name="deleteButton1">
+             <property name="maximumSize">
+              <size>
+               <width>25</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="font">
+              <font>
+               <pointsize>6</pointsize>
+              </font>
+             </property>
+             <property name="text">
+              <string>🚫</string>
+             </property>
+            </widget>
+           </item>
           </layout>
          </widget>
         </item>
