@@ -25,7 +25,6 @@ class WidgetMain(QMainWindow):
     def __init__(self, path):
         self.plotFms = False
         self.starfolder = Path('Library\\Settings\\')
-        self.settings = read_settings('display_settings')
         super(WidgetMain, self).__init__()
         loadUi(path, self)
         self.curveManager = CurveManager()
@@ -203,14 +202,21 @@ class WidgetMain(QMainWindow):
             self.progressBar.setValue(0)
 
     def load_settings(self):
+        defaultSettings = {'windowheight':1000,'windowwidth':1600,'ageBool':True,'posx':0,'posy':0,'curves':['None','None'],'curveColors':['#ff5500','#000000']}
+        self.settings = read_settings('display_settings')
+        if self.settings is not None:
+            for key in defaultSettings:
+                if key not in self.settings:
+                    self.settings[key] = defaultSettings[key]
+        else:
+            self.settings = defaultSettings
         height = self.settings['windowheight']
         width = self.settings['windowwidth']
-        #self.initialize_plot()
         self.resize(width, height)
         posx = self.settings['posx']
         posy = self.settings['posy']
-        self.ageBox.setChecked(self.settings['ageBool'])
         self.move(posx, posy)
+        self.ageBox.setChecked(self.settings['ageBool'])
         self.curveColors = self.settings['curveColors']
         self.curveManager.curves = self.settings['curves']
         for i,curve in enumerate(self.curveManager.curves):
