@@ -131,6 +131,7 @@ class CurveManager():
         newdict['bp'] = result_dict['bp']
         newdict['fm'] = exp(-result_dict['14C age']/8033)
         newdict['fm_sig'] = newdict['fm'] /8033*result_dict['Sigma1']
+        self.data[savename] = newdict
         savedict = {}
         for key in newdict:
             savedict[key] = list(newdict[key])
@@ -138,6 +139,7 @@ class CurveManager():
         file_path.parent.mkdir(parents=True, exist_ok=True)  # Ensure folder exists
         with file_path.open('w', encoding='utf-8') as file:
             json.dump(savedict, file)
+
         return True
 
     def load_excel_curve(self, widget):
