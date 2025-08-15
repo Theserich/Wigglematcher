@@ -59,8 +59,8 @@ class WidgetMain(QMainWindow):
         self.threads = []
         self.plotworker_cleanup_in_progress = False
         self.plot_manager = PlotManager(self.widget, self.curveManager)
-        self.adjust_scrollarea_width()
         self.redraw()
+        self.adjust_scrollarea_width()
 
     def safely_start_worker(self):
         if self.plotworker_cleanup_in_progress:
@@ -274,6 +274,8 @@ class WidgetMain(QMainWindow):
         if curentTabIndex == -1:
             return
         table_view = self.datasets[curentTabIndex].tableView
+
+        table_view.resizeColumnsToContents()
         model = table_view.model()
 
         total_width = 0

@@ -151,7 +151,7 @@ class Calculator:
                     denom = 2 * dRi ** 2 + 2 * dR ** 2
                     diff = Ri - R
                     p_i = exp(-diff ** 2 / denom) / (dRi ** 2 + dR ** 2) ** 0.5
-                    p_i = p_i / npsum(p_i)
+                    #p_i = p_i / npsum(p_i)
                     ps_likelihood[j, i] = p_i * offsetprior[j]
                     ps[i, :] = -0.5 * ((Ri - R) ** 2 / (dRi ** 2 + dR ** 2)) - 0.5 * log(
                         2 * pi * (dRi ** 2 + dR ** 2)) + log(offsetprior[j])
@@ -169,7 +169,8 @@ class Calculator:
             #ps = npsum(exp(ps), axis=0)
             A_is = empty(len_wig)
             for i in range(len_wig):
-                p = ps[i] / sum(ps[i])
+                ps[i] = ps[i]/sum(ps[i])
+                p = ps[i]
                 a = npsum(posterior_age * p) * dt_step
                 b = npsum(p ** 2) * dt_step
                 A_is[i] = a / b

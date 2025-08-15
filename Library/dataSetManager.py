@@ -30,19 +30,10 @@ class DataSetManager(QWidget):
         self.setup_offsets()
         self.tableModel = MyTableModel(self.calc, parent=self.widget,index=self.tabIndex)
         self.tableView.setModel(self.tableModel)
-
         self.tableView.setSortingEnabled(True)
-        self.plotCheckBox.setChecked(self.calc.plotsettings['plotbool'])
-        for i, (color, check,show) in enumerate(zip(self.calc.plotsettings['colors'],self.calc.plotsettings['colorbools'],self.calc.plotsettings['showfits'])):
-            self.__dict__[f'colorCheck{i}'].setChecked(check)
-            self.__dict__[f'colorCheck{i}'].clicked.connect(self.check_color)
-            self.__dict__[f'showCheck{i}'].setChecked(show)
-            self.__dict__[f'showCheck{i}'].clicked.connect(self.check_plot)
-            self.__dict__[f'colorButton{i}'].setStyleSheet(f"background-color: {self.calc.plotsettings['buttonColors'][i]};")
-            self.__dict__[f'colorButton{i}'].clicked.connect(self.open_color_dialog)
-        self.ChronoCheck.setChecked(self.calc.plotsettings['chronology'])
-        self.ChronoCheck.clicked.connect(self.showChronology)
-        self.plotCheckBox.clicked.connect(self.checkDataPLot)
+
+        self.setupPlotCheckboxes()
+
         self.deleteButton.clicked.connect(self.remove_dataset)
 
         self.loadButton.clicked.connect(lambda: self.calc.load_data(self))
@@ -55,7 +46,7 @@ class DataSetManager(QWidget):
                            'individualPLotButton2':{'progressbar': 'progressBar2', 'index': 1}}
         for button in self.buttonDict:
             self.__dict__[self.buttonDict[button]['progressbar']].setVisible(False)
-            self.__dict__[button].clicked.connect(lambda: self.plotGraph())
+            self.__dict__[button].clicked.connect(self.plotGraph)
         self.changing = False
         self.shiftEdit.valueChanged.connect(self.changeShift)
         self.offsetSlider.valueChanged.connect(self.changeOffset)
@@ -67,6 +58,22 @@ class DataSetManager(QWidget):
         self.debounce_timer.setSingleShot(True)
         self.debounce_timer.timeout.connect(self.widget.redraw)
 
+    def setupPlotCheckboxes(self):
+        self.plotCheckBox.setChecked(self.calc.plotsettings['plotbool'])
+        for i, (color, check, show) in enumerate(
+                zip(self.calc.plotsettings['colors'], self.calc.plotsettings['colorbools'],
+                    self.calc.plotsettings['showfits'])):
+            self.__dict__[f'colorCheck{i}'].setChecked(check)
+            self.__dict__[f'colorCheck{i}'].clicked.connect(self.check_color)
+            self.__dict__[f'showCheck{i}'].setChecked(show)
+            self.__dict__[f'showCheck{i}'].clicked.connect(self.check_plot)
+            self.__dict__[f'colorButton{i}'].setStyleSheet(
+                f"background-color: {self.calc.plotsettings['buttonColors'][i]};")
+            self.__dict__[f'colorButton{i}'].clicked.connect(self.open_color_dialog)
+        self.ChronoCheck.setChecked(self.calc.plotsettings['chronology'])
+        self.ChronoCheck.clicked.connect(self.showChronology)
+        self.plotCheckBox.clicked.connect(self.checkDataPLot)
+
     def set_offsetValues(self):
         if self.changing == True:
             return
@@ -76,9 +83,13 @@ class DataSetManager(QWidget):
             self.calc.offset_settings[key] = self.__dict__[key].value()
         if self.AutoOffset.isChecked():
             self.calc.offset_settings['Manual'] = False
+            for button in ['consitencyPLotButton2','consitencyPLotButton']:
+                self.__dict__[button].setEnabled(True)
             if sender == 'AutoOffset' and preManual==False: return
         else:
             self.calc.offset_settings['Manual'] = True
+            for button in ['consitencyPLotButton2','consitencyPLotButton']:
+                self.__dict__[button].setEnabled(False)
             if sender == 'ManualOffset' and preManual==True: return
         if self.GaussianPrior.isChecked():
             self.calc.offset_settings['GaussianPrior'] = True
@@ -177,13 +188,6 @@ class DataSetManager(QWidget):
             plotworker.finished.connect(self.display_plot)
             plotworker.start()
 
-    def plotGraph_experimental(self):
-        widget = self.sender()
-        button = widget.objectName()
-        #widget.setEnabled(False)
-        progressbar = self.__dict__[self.buttonDict[button]['progressbar']]
-        index = self.buttonDict[button]['index']
-        plotwindow = PlotWindow_test(self.calc,curveind=index,plotButton=button)
 
     def set_Agreement_and_OffsetLabels(self):
         for i,curve in enumerate(self.calc.curves):

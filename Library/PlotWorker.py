@@ -3,7 +3,7 @@ import io
 from matplotlib import pyplot as plt
 from Library.dataMager import Calculator
 from Library.HelperFunctions import fast_random_combinations
-from numpy import ones, arange,zeros, cumsum,inf,searchsorted, max as npmax, argsort, meshgrid,argmax
+from numpy import ones, arange,zeros, cumsum,inf,searchsorted, max as npmax, argsort, meshgrid,argmax, log
 from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5.QtWidgets import QMainWindow,QVBoxLayout, QWidget
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -185,7 +185,7 @@ class PLotWorker(QThread):
         likelihood = self.calc.data[self.curve]['likelihoods']
         agreements = self.calc.wiggledata[f'{self.curve}A_i'][self.calc.wiggledata['active']]
         X, Y = meshgrid(x, y)
-        self.ax.contourf(X, Y, likelihood, cmap=plt.cm.Purples)
+        self.ax.contourf(X, Y, log(likelihood), cmap=plt.cm.Purples)
         self.ax.set_ylabel('Offset in $^{14}$C years')
         ax_top = self.fig.add_axes(top_box, sharex=self.ax)
         ax_top.plot(x, pt, color='black')
@@ -194,16 +194,16 @@ class PLotWorker(QThread):
         ax_right.plot(self.calc.data[self.curve]['offsetprior'], y, color='black', alpha=0.5)
         ax_right.axis('off')
         ax_top.axis('off')
-        try:
-            maxyear = x[argmax(pt)]
-            self.ax.set_xlim((maxyear - 20.5, maxyear + 20.5))
-        except:
-            pass
-        try:
-            maxoffset = y[argmax(self.calc.data[self.curve]['offsetprob'])]
-            self.ax.set_ylim((maxoffset - 20.5, maxoffset + 20.5))
-        except:
-            pass
+        #try:
+        #    maxyear = x[argmax(pt)]
+        #    self.ax.set_xlim((maxyear - 20.5, maxyear + 20.5))
+        #except:
+        #    pass
+        #try:
+        #    maxoffset = y[argmax(self.calc.data[self.curve]['offsetprob'])]
+        #    self.ax.set_ylim((maxoffset - 20.5, maxoffset + 20.5))
+        #except:
+        #    pass
 
 def get_indexes(ps):
     lower= inf
