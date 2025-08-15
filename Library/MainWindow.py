@@ -234,7 +234,7 @@ class WidgetMain(QMainWindow):
     def closeEvent(self, event):
         w = self.width()
         h = self.height()
-        self.settings = read_settings('display_settings')
+        self.settings = {}
         self.settings['windowheight'] = h
         self.settings['windowwidth'] = w
         pos = self.pos()
