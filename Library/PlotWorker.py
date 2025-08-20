@@ -167,13 +167,16 @@ class PLotWorker(QThread):
         self.ax.xaxis.grid()
 
     def plotOffsetFit(self):
-        left = 0.1
+        left = 0.2
         bottom = 0.1
         height = 0.85
-        width = 0.85
+        width = 0.75
         main_box = [left, bottom, width * 0.8, height * 0.8]
         top_box = [left, bottom + height * 0.8, width * 0.8, height * 0.2]
         right_box = [left + width * 0.8, bottom, width * 0.2, height * 0.8]
+
+        colorbar_box = [left - 0.1, bottom, 0.02, height * 0.8]
+
         if self.calc.offset_settings['Manual']:
             return
         self.fig = Figure()
@@ -185,7 +188,7 @@ class PLotWorker(QThread):
         likelihood = self.calc.data[self.curve]['likelihoods']
         agreements = self.calc.wiggledata[f'{self.curve}A_i'][self.calc.wiggledata['active']]
         X, Y = meshgrid(x, y)
-        self.ax.contourf(X, Y, log(likelihood), cmap=plt.cm.Purples)
+        contour = self.ax.contourf(X, Y, log(likelihood), cmap=plt.cm.Purples,levels=20)
         self.ax.set_ylabel('Offset in $^{14}$C years')
         ax_top = self.fig.add_axes(top_box, sharex=self.ax)
         ax_top.plot(x, pt, color='black')
@@ -194,6 +197,12 @@ class PLotWorker(QThread):
         ax_right.plot(self.calc.data[self.curve]['offsetprior'], y, color='black', alpha=0.5)
         ax_right.axis('off')
         ax_top.axis('off')
+        cbar_ax = self.fig.add_axes(colorbar_box)
+        cbar = self.fig.colorbar(contour, cax=cbar_ax)
+        cbar.ax.yaxis.set_ticks_position('left')
+        cbar.ax.yaxis.set_label_position('left')
+        cbar.set_label('Log Likelihood')
+
         #try:
         #    maxyear = x[argmax(pt)]
         #    self.ax.set_xlim((maxyear - 20.5, maxyear + 20.5))

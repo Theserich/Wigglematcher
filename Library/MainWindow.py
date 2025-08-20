@@ -63,11 +63,23 @@ class WidgetMain(QMainWindow):
         self.adjust_scrollarea_width()
 
     def remove_curve(self):
-        """Not completely immplemented yet"""
         sender = self.sender()
         button = sender.objectName()
         index = int(button[-1])
         deleteCurve = self.__dict__[f'curveBox{index}'].currentText()
+
+        # Confirmation dialog
+        reply = QMessageBox.question(
+            self,
+            "Confirm Deletion",
+            f"Are you sure you want to delete the curve '{deleteCurve}'?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+
+        if reply != QMessageBox.Yes:
+            return  # Cancel deletion if user selects No
+
         for i, curve in enumerate(self.curveManager.curves):
             combo_box = self.__dict__[f'curveBox{i}']
             if curve == deleteCurve:
@@ -332,4 +344,5 @@ class WidgetMain(QMainWindow):
         else:
             # Disable horizontal scrolling since everything fits
             table_view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+
 

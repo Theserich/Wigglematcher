@@ -116,7 +116,7 @@ class DataSetManager(QWidget):
     def setup_offsets(self):
         for key in ['min','max','step','offset','offset_sig','mu','sigma']:
             self.__dict__[key].setValue(self.calc.offset_settings[key])
-            self.__dict__[key].valueChanged.connect(self.set_offsetValues)
+            self.__dict__[key].editingFinished.connect(self.set_offsetValues)
             self.AutoOffset.setChecked(True)
         if self.calc.offset_settings['GaussianPrior']:
             self.GaussianPrior.setChecked(True)

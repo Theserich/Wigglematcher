@@ -13,6 +13,7 @@ from Library.timer import timer
 from joblib import Parallel, delayed
 from scipy.stats import norm
 from matplotlib import pyplot as plt
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 default_plot_settings = {'dataName':'New Data','colors': ['C0','C0'],'plotbools': [True,True],'showfits':[True,False],'colorbools': [False,False],'plotbool':True,'buttonColors':['#ff5500','#000000'],'chronology':False}
 default_offset_settings = {'Manual':True,'offset':0,'offset_sig':0,'min':-100,'max':100,'step':1,'GaussianPrior':True,'mu':0,'sigma':50}
@@ -118,7 +119,7 @@ class Calculator:
         for curve in self.curves:
             if curve is None:
                 continue
-            maxsig = 10 * max(wigglefms_sig)
+            maxsig = 15 * max(wigglefms_sig)
             minfmsearch = min(wigglefms - maxsig)
             maxfmsearch = max(wigglefms + maxsig)
             fms = self.curveData.data[curve]['fm']
@@ -151,7 +152,6 @@ class Calculator:
                     denom = 2 * dRi ** 2 + 2 * dR ** 2
                     diff = Ri - R
                     p_i = exp(-diff ** 2 / denom) / (dRi ** 2 + dR ** 2) ** 0.5
-                    #p_i = p_i / npsum(p_i)
                     ps_likelihood[j, i] = p_i * offsetprior[j]
                     ps[i, :] = -0.5 * ((Ri - R) ** 2 / (dRi ** 2 + dR ** 2)) - 0.5 * log(
                         2 * pi * (dRi ** 2 + dR ** 2)) + log(offsetprior[j])
@@ -176,6 +176,11 @@ class Calculator:
                 A_is[i] = a / b
             A = prod(A_is) ** (1 / sqrt(len_wig))
             A_n = 1 / (2 * len_wig) ** 0.5
+            offset = testoffsets[argmax(posterior_offset)]
+            cdf = cumsum(posterior_offset)
+            offset_sig = testoffsets[searchsorted(cdf, 0.84)]-testoffsets[searchsorted(cdf, 0.16)]
+            age_corr = -8033 * log(self.wiggledata['fm']) + offset
+            age_sig = 8033 / self.wiggledata['fm'] * self.wiggledata['fm_sig']
             self.data[curve]['probability'] = posterior_age
             self.data[curve]['ps'] = ps
             self.data[curve]['A'] = A
@@ -186,16 +191,18 @@ class Calculator:
             self.data[curve]['offsetps'] = ps_likelihood
             self.data[curve]['likelihoods'] = likelyhoods
             self.wiggledata[f'{curve}A_i'] = A_is
-            offset = testoffsets[argmax(posterior_offset)]
-            cdf = cumsum(posterior_offset)
-            offset_sig = testoffsets[searchsorted(cdf, 0.84)]-testoffsets[searchsorted(cdf, 0.16)]
-            age_corr = -8033 * log(self.wiggledata['fm']) + offset
-            age_sig = 8033 / self.wiggledata['fm'] * self.wiggledata['fm_sig']
-            sig_corr = (age_sig ** 2 + offset_sig ** 2) ** 0.5
             self.data[curve]['fm_corr'] = exp(-age_corr / 8033)
-            self.data[curve]['fm_sig_corr'] = self.data[curve]['fm_corr']  / 8033 * sig_corr
+            self.data[curve]['fm_sig_corr'] = self.wiggledata['fm_sig']
             self.data[curve]['offset'] = offset
             self.data[curve]['offset_sig'] = offset_sig
+
+
+    def returnNan(self):
+        data = {}
+        N = len(self.wiggledata['year'])
+        data['tyears'] = full(2, nan)
+        data['ps'] = full(shape=(2, N), fill_value=nan)
+        return data
 
     @timer
     def calc_probs(self):
@@ -211,9 +218,7 @@ class Calculator:
             if curve not in self.data:
                 self.data[curve] = {}
             if len(wigglefms_sig) == 0:
-                self.data[curve]['tyears'] = full(2, nan)
-                self.data[curve]['ps'] = full(shape=(2, N), fill_value=nan)
-                return curve, self.data[curve]
+                return curve, self.returnNan()
             maxsig = 10 * max(wigglefms_sig)
             minfmsearch = min(wigglefms - maxsig)
             maxfmsearch = max(wigglefms + maxsig)
@@ -230,7 +235,7 @@ class Calculator:
             if len(years) == 0:
                 self.data[curve]['tyears'] = full(2, nan)
                 self.data[curve]['ps'] = full(shape=(2, N), fill_value=nan)
-                return curve, self.data[curve]
+                return curve, self.returnNan()
             minyear, maxyear = min(years) - min(shiftyears), max(years) - max(shiftyears)
             tyears = arange(minyear, maxyear, 1)
             self.data[curve]['tyears'] = tyears
@@ -262,7 +267,6 @@ class Calculator:
         age_corr = -8033*log(self.wiggledata['fm'])+self.offset
         age_sig = 8033/self.wiggledata['fm']*self.wiggledata['fm_sig']
         sig_corr = (age_sig**2+self.offset_sig**2)**0.5
-
         self.wiggledata['fm_corr'] = exp(-age_corr/8033)
         self.wiggledata['fm_sig_corr'] = self.wiggledata['fm_corr']/8033*sig_corr
         self.wiggleyears = self.wiggledata['year'][self.wiggledata['active']]
@@ -348,5 +352,7 @@ class Calculator:
             for percentile in self.percentiles:
                 mask = cdf<percentile
                 self.data[curve][f'{percentile}%range'] = mask[revsortind]
+
+
 
 
