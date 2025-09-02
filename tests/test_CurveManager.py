@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch, mock_open, MagicMock
-from Library.CurveManager import CurveManager
+from src.CurveManager import CurveManager
 import json
 import numpy as np
 

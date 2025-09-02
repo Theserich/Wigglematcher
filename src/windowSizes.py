@@ -1,4 +1,4 @@
-from Library.comset import read_settings, write_settings
+from src.comset import read_settings, write_settings
 from os.path import join
 from PyQt5.Qt import QFont
 

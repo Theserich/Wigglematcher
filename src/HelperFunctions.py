@@ -3,7 +3,6 @@ from numpy import array, argsort, sort, unique, where
 import pandas as pd
 import math
 import random
-from Library.timer import timer
 
 def groupdf(df, groupkey):
     data = {}

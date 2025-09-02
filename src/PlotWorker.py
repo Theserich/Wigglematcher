@@ -1,16 +1,14 @@
-import time
-import io
 from matplotlib import pyplot as plt
-from Library.dataMager import Calculator
-from Library.HelperFunctions import fast_random_combinations
-from numpy import ones, arange,zeros, cumsum,inf,searchsorted, max as npmax, argsort, meshgrid,argmax, log
+from src.dataMager import Calculator
+from src.HelperFunctions import fast_random_combinations
+from numpy import ones, arange, cumsum,inf,searchsorted, max as npmax, argsort, meshgrid, log
 from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5.QtWidgets import QMainWindow,QVBoxLayout, QWidget
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
-from Library.comset import read_settings, write_settings
+from src.comset import read_settings, write_settings
 import matplotlib
-from Library.timer import timer
+
 matplotlib.use("Qt5Agg")
 from matplotlib.figure import Figure
 

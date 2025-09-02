@@ -1,6 +1,5 @@
 import pytest
-from Library.MainWindow import WidgetMain
-from PyQt5.QtWidgets import QApplication
+from src.MainWindow import WidgetMain
 
 @pytest.fixture
 def app(qtbot):

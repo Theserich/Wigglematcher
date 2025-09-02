@@ -210,6 +210,7 @@ class PlotManager:
             self.ax[0].set_ylabel('$^{14}$C age in years')
         else:
             self.ax[0].set_ylabel('F$^{14}$C')
+        self.ax[0].legend()
         #self.setBounds()
         self.canvas.draw_idle()
 

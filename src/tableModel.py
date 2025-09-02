@@ -1,10 +1,10 @@
 from PyQt5.QtCore import QVariant, Qt, QAbstractTableModel, QModelIndex
-from PyQt5.QtWidgets import QApplication, QTableView, QVBoxLayout, QWidget, QMessageBox
+from PyQt5.QtWidgets import QMessageBox
 from scipy.interpolate import interp1d
 
-from Library.dataMager import Calculator
-from PyQt5.Qt import QFont, QColor
-from numpy import linspace,random,sin, exp, where, zeros, argmax,append, log,exp, arange,diff,ones,split,argsort,array, insert, append, delete,nan
+from src.dataMager import Calculator
+from PyQt5.Qt import QColor
+from numpy import random, arange, argsort,array, insert, append, delete,nan
 from PyQt5.QtCore import QTimer
 
 

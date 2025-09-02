@@ -2,22 +2,17 @@ from PyQt5.uic import loadUi
 from pathlib import Path
 import os
 
-from Library.comset import read_settings, write_settings
-from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QFileDialog, QColorDialog,QMessageBox
-from PyQt5.Qt import Qt
-from Library.dataSetManager import DataSetManager
-from Library.PlotManager import PlotManager
-from Library.timer import timer
-from numpy import where, zeros, argmax,append, log, exp, arange,diff,ones,split, inf
-from Library.CurveManager import CurveManager
-from Library.MainPlotThread import MainPLotWorker
+from src.comset import read_settings, write_settings
+from PyQt5.QtWidgets import QMainWindow, QFileDialog, QColorDialog,QMessageBox
+from src.dataSetManager import DataSetManager
+from src.PlotManager import PlotManager
+from src.timer import timer
+from src.CurveManager import CurveManager
+from src.MainPlotThread import MainPLotWorker
 import matplotlib
-from Library.ExcelWorker import ExcelWorker
-from matplotlib import pyplot as plt
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas, NavigationToolbar2QT as NavigationToolbar
-from PyQt5.QtWidgets import QVBoxLayout
+from src.ExcelWorker import ExcelWorker
 from PyQt5.Qt import Qt
-from numpy import log, where, zeros, arange, diff, split, inf, nanargmax
+
 matplotlib.use("Qt5Agg")
 
 
@@ -202,7 +197,6 @@ class WidgetMain(QMainWindow):
 
 
     def saveData(self):
-        start_folder = 'Library\\SaveFolder'
         file_path, _ = QFileDialog.getSaveFileName(
             self,
             "Save File As",

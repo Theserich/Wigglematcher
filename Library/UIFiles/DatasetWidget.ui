@@ -526,7 +526,7 @@
   <customwidget>
    <class>MyTableView</class>
    <extends>QTableView</extends>
-   <header location="global">Library/tableView.h</header>
+   <header location="global">src/tableView.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

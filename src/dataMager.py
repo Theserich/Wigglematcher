@@ -1,25 +1,15 @@
 import copy
-from Library.HelperFunctions import *
-from numpy import array, exp, log, arange, nan, zeros, random, ones, sin, where,full, sqrt, argsort, unique, cumsum, prod, float64, sum as npsum, empty, asarray, pi, abs as npabs, argmax,searchsorted
-from numpy import (array, exp, log, arange, nan, zeros, random, ones, sin,
-                   where, full, sqrt, argsort, unique, cumsum, prod, float64,
+from src.HelperFunctions import *
+from numpy import (array, exp, log, arange, nan, zeros, ones, where, full, sqrt, argsort, cumsum, prod, float64,
                    sum as npsum, empty, asarray, pi, abs as npabs, argmax,
                    searchsorted, interp as npinterp)
-from scipy.stats import norm
 from numba import njit, prange
-from scipy.stats import chi2
-import pathlib
 from PyQt5.QtWidgets import QFileDialog
 from pathlib import Path
-import pickle
 from PyQt5.QtWidgets import QMessageBox
-import pandas as pd
 from scipy.interpolate import interp1d
-from Library.timer import timer
-from joblib import Parallel, delayed
+from src.timer import timer
 from scipy.stats import norm
-from matplotlib import pyplot as plt
-from concurrent.futures import ProcessPoolExecutor, as_completed
 
 default_plot_settings = {'dataName':'New Data','colors': ['C0','C0'],'plotbools': [True,True],'showfits':[True,False],'colorbools': [False,False],'plotbool':True,'buttonColors':['#ff5500','#000000'],'chronology':False}
 default_offset_settings = {'Manual':True,'offset':0,'offset_sig':0,'min':-100,'max':100,'step':1,'GaussianPrior':True,'mu':0,'sigma':50}

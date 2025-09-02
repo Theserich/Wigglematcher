@@ -1,21 +1,14 @@
-from logging import exception
-
-from Library.dataMager import Calculator,default_plot_settings,default_offset_settings
-from Library.tableModel import MyTableModel
-from PyQt5.QtWidgets import QTableView, QPushButton, QLineEdit, QWidget, QColorDialog, QGridLayout, QCheckBox,QRadioButton,QButtonGroup
+from src.dataMager import Calculator,default_plot_settings,default_offset_settings
+from src.tableModel import MyTableModel
+from PyQt5.QtWidgets import QWidget, QColorDialog, QButtonGroup
 from PyQt5.QtGui import QPalette
 from numpy import searchsorted
-from Library.comset import *
 import pickle
 from copy import copy
 from PyQt5.uic import loadUi
-from Library.PLotWindow import PlotWindow_test
-from matplotlib import pyplot as plt
-from Library.PlotWorker import PLotWorker,PlotWindow
-from PyQt5.QtCore import QThread, pyqtSignal
+from src.PlotWorker import PLotWorker,PlotWindow
 from PyQt5.QtCore import QTimer
 from pathlib import Path
-from PyQt5.QtCore import Qt
 
 class DataSetManager(QWidget):
     def __init__(self,widget,index,loadData=False):

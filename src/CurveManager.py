@@ -1,15 +1,11 @@
-import copy
 import os
-from matplotlib import pyplot as plt
 
-from Library.HelperFunctions import *
-from numpy import exp, log, arange, zeros, random, ones, sin, pi, append, all as npall, diff, mean, sum as npsum, sqrt
+from src.HelperFunctions import *
+from numpy import exp, log, zeros, append, all as npall, diff, sum as npsum, sqrt
 from PyQt5.QtWidgets import  QFileDialog
 from pathlib import Path
 import json
 from PyQt5.QtWidgets import QMessageBox
-from scipy.interpolate import interp1d
-from Library.timer import timer
 
 class CurveManager():
     def __init__(self):
