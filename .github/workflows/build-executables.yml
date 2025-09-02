@@ -58,7 +58,11 @@ jobs:
       # Remove --windowed if your app is console-based
       - name: Build executable
         run: |
-          pyinstaller --noconfirm --onefile --windowed --name "${{ matrix.output_name }}" main.py
+          pyinstaller --noconfirm --onefile --windowed \
+            --name "${{ matrix.output_name }}" \
+            --add-data "Library${{ matrix.data_sep }}Library" \
+            main.py
+      
 
       - name: Show dist contents (debug)
         run: ls -la dist
