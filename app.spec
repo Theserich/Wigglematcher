@@ -11,7 +11,7 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas = collect_data_files('Library'),  # Include entire Library folder
+    datas=Tree('Library', prefix='Library') + [],  # Include entire Library folder
     hiddenimports=[],
     hookspath=[],
     runtime_hooks=[],
