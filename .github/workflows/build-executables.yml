@@ -29,15 +29,9 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
 
-
-      - name: Build (folder-based, forced paths, debug logs)
+      - name: Build (folder-based)
         run: |
-          pyinstaller --noconfirm ^
-            --log-level=DEBUG ^
-            --distpath dist ^
-            --workpath build ^
-            app.spec
-      
+          pyinstaller --noconfirm app.spec
 
       - name: Show dist contents
         run: |
