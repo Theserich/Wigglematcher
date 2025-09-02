@@ -1,6 +1,12 @@
 import copy
 from Library.HelperFunctions import *
 from numpy import array, exp, log, arange, nan, zeros, random, ones, sin, where,full, sqrt, argsort, unique, cumsum, prod, float64, sum as npsum, empty, asarray, pi, abs as npabs, argmax,searchsorted
+from numpy import (array, exp, log, arange, nan, zeros, random, ones, sin,
+                   where, full, sqrt, argsort, unique, cumsum, prod, float64,
+                   sum as npsum, empty, asarray, pi, abs as npabs, argmax,
+                   searchsorted, interp as npinterp)
+from scipy.stats import norm
+from numba import njit, prange
 from scipy.stats import chi2
 import pathlib
 from PyQt5.QtWidgets import QFileDialog
@@ -196,6 +202,132 @@ class Calculator:
             self.data[curve]['offset'] = offset
             self.data[curve]['offset_sig'] = offset_sig
 
+    @timer
+    def calc_probs_with_offsetfit2(self):
+        # -------- Global, curve-independent precomputations
+        self.curves = self.curveData.curves
+        wiggleyears = self.wiggledata['year']  # (W,)
+        wigglefms = asarray(self.wiggledata['fm'], dtype=float64)  # (W,)
+        wigglefms_sig = asarray(self.wiggledata['fm_sig'], dtype=float64)  # (W,)
+        shiftyears = asarray(self.wiggledata['dt'], dtype=float64)  # (W,)
+        active_raw = asarray(self.wiggledata['active'])
+        is_active_w = active_raw.astype(bool)  # Numba-friendly boolean mask
+
+        testoffsets = arange(self.offset_settings['min'],
+                             self.offset_settings['max'],
+                             self.offset_settings['step'], dtype=float64)
+        len_off = len(testoffsets)
+        len_wig = len(wiggleyears)
+
+        # Prior over offsets
+        if self.offset_settings['GaussianPrior']:
+            offsetprior = norm.pdf(testoffsets,
+                                   loc=self.offset_settings['mu'],
+                                   scale=self.offset_settings['sigma'])
+            offsetprior /= offsetprior.sum()
+        else:
+            offsetprior = ones(len_off, dtype=float64) / len_off
+        log_prior = log(offsetprior).astype(float64)
+
+        # --- Precompute Ri for all (offset, wiggle):
+        # age = -8033*log(wigglefms) + offset  => Ri = exp(-age/8033) = wigglefms * exp(-offset/8033)
+        exp_off = exp(-testoffsets / 8033.0)[:, None]  # (O,1)
+        Ri_ow = exp_off * wigglefms[None, :]  # (O,W)
+        dRi_w = wigglefms_sig  # (W,)
+
+        # Common FM search band across curves
+        maxsig = 15.0 * wigglefms_sig.max()
+        minfmsearch = (wigglefms - maxsig).min()
+        maxfmsearch = (wigglefms + maxsig).max()
+        # -------- Work per curve
+        for curve in self.curves:
+            if curve is None:
+                continue
+
+            fms = asarray(self.curveData.data[curve]['fm'], dtype=float64)
+            fm_sigs = asarray(self.curveData.data[curve]['fm_sig'], dtype=float64)
+            t = asarray(self.curveData.data[curve]['calendaryear'], dtype=float64)
+            idx = where((fms >= minfmsearch) & (fms < maxfmsearch))[0]
+            if idx.size == 0:
+                # Nothing to compute
+                continue
+            idx = arange(idx.min(), idx.max(), 1, dtype=int)
+            years = t[idx]
+
+            # Target calendar grid accounting for shifts
+            minyear = years.min() - shiftyears.min()
+            maxyear = years.max() - shiftyears.max()
+            tyears = arange(minyear, maxyear, 1.0, dtype=float64)
+            self.data[curve]['tyears'] = tyears
+            T = tyears.size
+            if T == 0:
+                continue
+            shifted_years = tyears[None, :] + shiftyears[:, None]  # (W,T)
+            R_wt = array([npinterp(shifted_years[i], t, fms) for i in range(len_wig)], dtype=float64)
+            dR_wt = array([npinterp(shifted_years[i], t, fm_sigs) for i in range(len_wig)], dtype=float64)
+
+            # --- Heavy part in Numba
+            log_ps, active_sum = _compute_log_ps_and_active(
+                Ri_ow, dRi_w, R_wt, dR_wt, log_prior, is_active_w
+            )  # log_ps: (O,W,T), active_sum: (O,T) = sum over active wiggles
+
+            # Likelihoods per offset over age grid
+            likelihoods = exp(active_sum)  # (O,T)
+            posterior_age = likelihoods.sum(axis=0)  # (T,)
+            posterior_age /= posterior_age.sum()
+
+            posterior_offset = likelihoods.sum(axis=1)  # (O,)
+            posterior_offset /= posterior_offset.sum()
+
+            # Agreement indices
+            dt_step = npabs(tyears[1] - tyears[0]) if T > 1 else 1.0
+            ps = exp(log_ps).sum(axis=0)  # (W,T)
+            A_is = empty(len_wig, dtype=float64)
+            for i in range(len_wig):
+                row = ps[i]
+                s = row.sum()
+                if s == 0.0:
+                    A_is[i] = nan
+                    continue
+                row = row / s
+                a = npsum(posterior_age * row) * dt_step
+                b = npsum(row * row) * dt_step
+                A_is[i] = a / b if b != 0.0 else nan
+
+            # Combine agreement
+            safe_Ais = A_is.copy()
+            safe_Ais[~(safe_Ais == safe_Ais)] = 1.0  # replace NaNs with 1
+            A = prod(safe_Ais) ** (1.0 / sqrt(len_wig))
+            A_n = 1.0 / sqrt(2.0 * len_wig)
+
+            # Offset point & ~68% central interval
+            best_j = argmax(posterior_offset)
+            offset = testoffsets[best_j]
+            cdf = cumsum(posterior_offset)
+            lo = searchsorted(cdf, 0.16)
+            hi = searchsorted(cdf, 0.84)
+            offset_sig = testoffsets[hi] - testoffsets[lo]
+
+            # Corrections
+            age_corr = -8033.0 * log(self.wiggledata['fm']) + offset
+            fm_corr = exp(-age_corr / 8033.0)
+            fm_sig_corr = self.wiggledata['fm_sig']
+
+            # Store
+            self.data[curve]['probability'] = posterior_age
+            self.data[curve]['ps'] = ps
+            self.data[curve]['A'] = A
+            self.data[curve]['A_n'] = A_n
+            self.data[curve]['testoffsets'] = testoffsets
+            self.data[curve]['offsetprior'] = offsetprior
+            self.data[curve]['offsetprob'] = posterior_offset
+            self.data[curve]['offsetps'] = exp(log_ps)  # (O,W,T) — large, but matches original API
+            self.data[curve]['likelihoods'] = likelihoods  # (O,T)
+            self.wiggledata[f'{curve}A_i'] = A_is
+            self.data[curve]['fm_corr'] = fm_corr
+            self.data[curve]['fm_sig_corr'] = fm_sig_corr
+            self.data[curve]['offset'] = offset
+            self.data[curve]['offset_sig'] = offset_sig
 
     def returnNan(self):
         data = {}
@@ -352,6 +484,30 @@ class Calculator:
             for percentile in self.percentiles:
                 mask = cdf<percentile
                 self.data[curve][f'{percentile}%range'] = mask[revsortind]
+
+@njit(fastmath=True, parallel=True)
+def _compute_log_ps_and_active(Ri_ow, dRi_w, R_wt, dR_wt, log_prior_o, is_active_w):
+    O = Ri_ow.shape[0]
+    W = Ri_ow.shape[1]
+    T = R_wt.shape[1]
+    log_ps = zeros((O, W, T))
+    active_sum = zeros((O, T))
+    two_pi = 2.0 * pi
+    for j in prange(O):  # offsets
+        lp = log_prior_o[j]
+        for i in range(W):  # wiggles
+            ri = Ri_ow[j, i]
+            d_ri = dRi_w[i]
+            for k in range(T):  # tyears
+                r = R_wt[i, k]
+                d_r = dR_wt[i, k]
+                var = d_ri * d_ri + d_r * d_r
+                diff = ri - r
+                val = -0.5 * (diff * diff / var) - 0.5 * log(two_pi * var) + lp
+                log_ps[j, i, k] = val
+                if is_active_w[i]:
+                    active_sum[j, k] += val
+    return log_ps, active_sum
 
 
 

@@ -35,8 +35,8 @@ class PlotManager:
         self.figure, ax = plt.subplots(1)
         self.ax.append(ax)
         self.ax.append(ax.twinx())  # Second y-axis
-        self.figure.patch.set_facecolor('none')
-        self.figure.patch.set_alpha(0.0)
+        #self.figure.patch.set_facecolor('none')
+        #self.figure.patch.set_alpha(0.0)
         self.figure.subplots_adjust(
             left=0.08,  # Left margin
             bottom=0.08,  # Bottom margin
