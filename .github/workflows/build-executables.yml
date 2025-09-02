@@ -51,7 +51,7 @@ jobs:
           path: windows-executable
       - name: Zip build
         run: |
-          zip -r app-${{ github.ref_name }}-windows-x64.zip windows-executable
+          zip -j app-${{ github.ref_name }}-windows-x64.zip windows-executable/app.exe
       - name: Create/Update GitHub Release and upload asset
         uses: softprops/action-gh-release@v2
         with:
