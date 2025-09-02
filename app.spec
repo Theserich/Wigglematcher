@@ -7,8 +7,8 @@ from PyInstaller.building.build_main import Analysis, PYZ, EXE, COLLECT
 
 block_cipher = None
 
-SPEC_DIR = Path(__file__).resolve().parent if '__file__' in globals() else Path.cwd()
-LIB_DIR = SPEC_DIR / "Library"
+#SPEC_DIR = Path(__file__).resolve().parent if '__file__' in globals() else Path.cwd()
+LIB_DIR = "Library"
 
 # datas must be a list of 2-tuples: (source_path, target_dir_inside_dist)
 datas = []
@@ -42,6 +42,7 @@ exe = EXE(
     strip=False,
     upx=False,
     console=True,
+    onefile=True
 )
 
 coll = COLLECT(
