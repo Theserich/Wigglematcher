@@ -3,7 +3,7 @@ name: Build Windows Executable
 on:
   push:
     tags:
-      - 'v*'      # Trigger on tags like v1.0.0
+      - 'v*'
   workflow_dispatch:
 
 permissions:
@@ -19,7 +19,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'   # PyInstaller is most stable on 3.12
+          python-version: '3.12'
           cache: 'pip'
           cache-dependency-path: requirements.txt
 
@@ -29,17 +29,21 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
 
-      - name: Build EXE
+      - name: Build (folder-based)
         run: |
-          pyinstaller --noconfirm --onefile --name app main.py
-          # If you want to use your spec file instead:
-          # pyinstaller --noconfirm app.spec
+          pyinstaller --noconfirm app.spec
+          # OR if you don't want to use the spec file:
+          # pyinstaller --noconfirm --onedir --name app main.py
 
       - name: Show dist contents
-        run: dir dist
+        run: |
+          echo "dist directory contents:"
+          dir dist
+          echo "app folder contents:"
+          dir dist\\app
 
-      - name: Upload artifact
+      - name: Upload artifact (entire app folder)
         uses: actions/upload-artifact@v4
         with:
           name: windows-executable
-          path: dist/app.exe
+          path: dist/app/
