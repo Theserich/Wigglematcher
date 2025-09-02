@@ -7,7 +7,7 @@ from PyInstaller.building.build_main import Analysis, PYZ, EXE, COLLECT
 
 block_cipher = None
 
-#SPEC_DIR = Path(__file__).resolve().parent if '__file__' in globals() else Path.cwd()
+SPEC_DIR = Path(__file__).resolve().parent if '__file__' in globals() else Path.cwd()
 #LIB_DIR = SPEC_DIR / "Library"
 LIB_DIR = Path("Library")
 
