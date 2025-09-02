@@ -29,11 +29,15 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
 
-      - name: Build (folder-based)
+
+      - name: Build (folder-based, forced paths, debug logs)
         run: |
-          pyinstaller --noconfirm app.spec
-          # OR if you don't want to use the spec file:
-          # pyinstaller --noconfirm --onedir --name app main.py
+          pyinstaller --noconfirm ^
+            --log-level=DEBUG ^
+            --distpath dist ^
+            --workpath build ^
+            app.spec
+      
 
       - name: Show dist contents
         run: |

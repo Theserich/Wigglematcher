@@ -1,25 +1,25 @@
+# app.spec
 # -*- mode: python ; coding: utf-8 -*-
 
 from pathlib import Path
 from PyInstaller.building.build_main import Analysis, PYZ, EXE, COLLECT
-from PyInstaller.building.datastruct import Tree
+# Note: no Tree import needed for Analysis.datas
 
 block_cipher = None
 
-# Be resilient if __file__ is not defined when PyInstaller executes the spec
 SPEC_DIR = Path(__file__).resolve().parent if '__file__' in globals() else Path.cwd()
 LIB_DIR = SPEC_DIR / "Library"
 
-# Pass Tree(...) directly; no ".toc" attribute
+# datas must be a list of 2-tuples: (source_path, target_dir_inside_dist)
 datas = []
 if LIB_DIR.is_dir():
-    datas += Tree(str(LIB_DIR), prefix='Library')
+    datas.append((str(LIB_DIR), 'Library'))
 
 a = Analysis(
     ['main.py'],
     pathex=[str(SPEC_DIR)],
     binaries=[],
-    datas=datas,
+    datas=datas,                 # <-- Correct format
     hiddenimports=[],
     hookspath=[],
     runtime_hooks=[],
@@ -29,7 +29,6 @@ a = Analysis(
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
-# Keep the explicit [] for exclude_binaries to avoid positional arg shifts
 exe = EXE(
     pyz,
     a.scripts,
@@ -37,12 +36,12 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='app',
+    name='app',                  # app.exe inside dist/app/
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=False,        # set True only if UPX is installed on the runner
-    console=False,    # True for a console app
+    upx=False,
+    console=False,
 )
 
 coll = COLLECT(
@@ -52,5 +51,5 @@ coll = COLLECT(
     a.datas,
     strip=False,
     upx=False,
-    name='app',
+    name='app',                  # dist/app/
 )
