@@ -1,7 +1,9 @@
 # app.spec
 from PyInstaller.utils.hooks import collect_submodules
 from PyInstaller.building.build_main import Analysis, PYZ, EXE, COLLECT
-from PyInstaller.building.datastruct import Tree
+from PyInstaller.utils.hooks import collect_data_files
+
+
 
 block_cipher = None
 
@@ -9,7 +11,7 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[Tree('Library', prefix='Library')],  # Include entire Library folder
+    datas = collect_data_files('Library'),  # Include entire Library folder
     hiddenimports=[],
     hookspath=[],
     runtime_hooks=[],
