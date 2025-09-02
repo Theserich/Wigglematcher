@@ -2,8 +2,7 @@ name: Build Windows Executable
 
 on:
   push:
-    tags:
-      - 'v*'
+    tags: ['v*']   # e.g., v1.0.0
   workflow_dispatch:
 
 permissions:
@@ -12,36 +11,53 @@ permissions:
 jobs:
   build:
     runs-on: windows-latest
-
     steps:
       - uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
           cache: 'pip'
           cache-dependency-path: requirements.txt
-
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pyinstaller
-
       - name: Build (folder-based)
-        run: |
-          pyinstaller --noconfirm app.spec
-
+        run: pyinstaller --noconfirm app.spec
       - name: Show dist contents
         run: |
-          echo "dist directory contents:"
-          dir dist
-          echo "app folder contents:"
-          dir dist\\app
-
+          echo "dist directory contents:"; dir dist
+          echo "app folder contents:";    dir dist\app
       - name: Upload artifact (entire app folder)
         uses: actions/upload-artifact@v4
         with:
           name: windows-executable
           path: dist/app/
+          retention-days: 30   # optional; default is 90 days
+  release:
+    # Only run on tag pushes
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # needed to create a Release
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-executable
+          path: windows-executable
+      - name: Zip build
+        run: |
+          zip -r app-${{ github.ref_name }}-windows-x64.zip windows-executable
+      - name: Create/Update GitHub Release and upload asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: app-${{ github.ref_name }}-windows-x64.zip
+          name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
