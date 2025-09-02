@@ -1,26 +1,21 @@
-# app.spec
 # -*- mode: python ; coding: utf-8 -*-
-
 from pathlib import Path
-from PyInstaller.building.build_main import Analysis, PYZ, EXE, COLLECT
-# Note: no Tree import needed for Analysis.datas
+from PyInstaller.building.build_main import Analysis, PYZ, EXE
+import shutil
 
 block_cipher = None
 
 SPEC_DIR = Path(__file__).resolve().parent if '__file__' in globals() else Path.cwd()
-#LIB_DIR = SPEC_DIR / "Library"
-LIB_DIR = Path("Library")
+LIB_DIR = SPEC_DIR / "Library"
+DIST_DIR = SPEC_DIR / "dist"
 
-# datas must be a list of 2-tuples: (source_path, target_dir_inside_dist)
 datas = []
-if LIB_DIR.is_dir():
-    datas.append((str(LIB_DIR), 'Library'))
 
 a = Analysis(
     ['main.py'],
     pathex=[str(SPEC_DIR)],
     binaries=[],
-    datas=datas,                 # <-- Correct format
+    datas=datas,  # No need to include Library in onefile mode
     hiddenimports=[],
     hookspath=[],
     runtime_hooks=[],
@@ -37,7 +32,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='app',                  # app.exe inside dist/app/
+    name='app',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -46,12 +41,9 @@ exe = EXE(
     onefile=True
 )
 
-coll = COLLECT(
-    exe,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
-    strip=False,
-    upx=False,
-    name='app',                  # dist/app/
-)
+# Optional: copy Library folder to dist/ after build
+if LIB_DIR.is_dir():
+    target = DIST_DIR / 'Library'
+    if target.exists():
+        shutil.rmtree(target)
+    shutil.copytree(LIB_DIR, target)
