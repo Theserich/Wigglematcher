@@ -30,11 +30,11 @@ jobs:
         run: |
           echo "dist directory contents:"; dir dist
           echo "app folder contents:";    dir dist\app
-      - name: Upload artifact (entire app folder)
+      - name: Upload artifact (single exe)
         uses: actions/upload-artifact@v4
         with:
           name: windows-executable
-          path: dist/app/
+          path: dist/app.exe
           retention-days: 30   # optional; default is 90 days
   release:
     # Only run on tag pushes
