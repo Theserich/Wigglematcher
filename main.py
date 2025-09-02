@@ -8,7 +8,7 @@ import faulthandler
 faulthandler.enable()
 matplotlib.use("Qt5Agg")
 from Library.EditableTabWidget import EditableTabWidget
-
+#
 if __name__ == '__main__':
     try:
         QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
