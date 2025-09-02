@@ -15,7 +15,7 @@ a = Analysis(
     ['main.py'],
     pathex=[str(SPEC_DIR)],
     binaries=[],
-    datas=datas,  # No need to include Library in onefile mode
+    datas=[],
     hiddenimports=[],
     hookspath=[],
     runtime_hooks=[],
@@ -32,7 +32,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='app',
+    name='app.exe',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
