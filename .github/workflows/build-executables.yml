@@ -26,6 +26,8 @@ jobs:
           pip install pyinstaller
       - name: Build (folder-based)
         run: pyinstaller --noconfirm app.spec
+      - name: Build with spec script
+        run: python app.spec
       - name: Show dist contents
         run: |
           echo "dist directory contents:"; dir dist
