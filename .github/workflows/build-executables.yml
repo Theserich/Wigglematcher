@@ -1,4 +1,4 @@
-name: Build Windows Executable
+name: Build Cross-Platform Executables
 
 on:
   push:
@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  build-windows:
     runs-on: windows-latest
 
     steps:
@@ -30,6 +30,7 @@ jobs:
 
       - name: Build executable
         run: pyinstaller --noconfirm app.spec
+
       - name: Prepare zip contents
         run: |
           mkdir zip-content
@@ -52,23 +53,76 @@ jobs:
           path: app-${{ github.ref_name }}-windows-x64.zip
           retention-days: 30
 
+  build-macos:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build executable
+        run: pyinstaller --noconfirm app.spec
+
+      - name: Prepare zip contents
+        run: |
+          mkdir zip-content
+          cp dist/app zip-content/
+          if [ -d "Library" ]; then
+            cp -R Library zip-content/Library
+          fi
+          if [ -d "src" ]; then
+            cp -R src zip-content/src
+          fi
+
+      - name: Zip build
+        run: |
+          cd zip-content
+          zip -r ../app-${{ github.ref_name }}-macos-x64.zip .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-executable
+          path: app-${{ github.ref_name }}-macos-x64.zip
+          retention-days: 30
+
   release:
     if: startsWith(github.ref, 'refs/tags/')
-    needs: build
+    needs: [build-windows, build-macos]
     runs-on: ubuntu-latest
 
     steps:
-      - name: Download build artifact
+      - name: Download Windows artifact
         uses: actions/download-artifact@v4
         with:
           name: windows-executable
           path: windows-executable
+      - name: Download macOS artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-executable
+          path: macos-executable
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: windows-executable/app-${{ github.ref_name }}-windows-x64.zip
+          files: |
+            windows-executable/app-${{ github.ref_name }}-windows-x64.zip
+            macos-executable/app-${{ github.ref_name }}-macos-x64.zip
           name: Release ${{ github.ref_name }}
           draft: false
           prerelease: false
-       
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
