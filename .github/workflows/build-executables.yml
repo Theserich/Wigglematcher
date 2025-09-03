@@ -29,7 +29,7 @@ jobs:
       - name: Show dist contents
         run: |
           echo "dist directory contents:"; dir dist
-          echo "app folder contents:";    dir dist\app
+          echo "app folder contents:";    dir dist\app.exe
       - name: Upload artifact (single exe)
         uses: actions/upload-artifact@v4
         with:
