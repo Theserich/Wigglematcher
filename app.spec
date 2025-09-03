@@ -25,6 +25,7 @@ a = Analysis(
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
+
 exe = EXE(
     pyz,
     a.scripts,
@@ -32,7 +33,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='app.exe',
+    name='app',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -40,3 +41,4 @@ exe = EXE(
     console=True,
     onefile=True
 )
+
