@@ -26,8 +26,13 @@ jobs:
           pip install pyinstaller
       - name: Build (folder-based)
         run: pyinstaller --noconfirm app.spec
-      - name: Build with spec script
-        run: python app.spec
+      - name: Copy Library folder to dist
+        run: |
+          if (Test-Path "Library") {
+            if (Test-Path "dist/Library") { Remove-Item -Recurse -Force "dist/Library" }
+            Copy-Item -Recurse "Library" "dist/Library"
+          }
+
       - name: Show dist contents
         run: |
           echo "dist directory contents:"; dir dist
