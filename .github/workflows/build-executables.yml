@@ -1,68 +1,70 @@
+
 name: Build Windows Executable
 
 on:
   push:
-    tags: ['v*']   # e.g., v1.0.0
+    tags: ['v*']
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
     runs-on: windows-latest
+
     steps:
       - uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
           cache: 'pip'
           cache-dependency-path: requirements.txt
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pyinstaller
-      - name: Build (folder-based)
+
+      - name: Build executable
         run: pyinstaller --noconfirm app.spec
-      - name: Copy Library folder to dist
+
+      - name: Prepare zip contents
         run: |
+          mkdir zip-content
+          copy dist\app.exe zip-content\
           if (Test-Path "Library") {
-            if (Test-Path "dist/Library") { Remove-Item -Recurse -Force "dist/Library" }
-            Copy-Item -Recurse "Library" "dist/Library"
+            copy -Recurse Library zip-content\Library
           }
 
-      - name: Show dist contents
+      - name: Zip build
         run: |
-          echo "dist directory contents:"; dir dist
-          echo "app folder contents:";    dir dist\app.exe
-      - name: Upload artifact (single exe)
+          zip -r app-${{ github.ref_name }}-windows-x64.zip zip-content
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-executable
-          path: dist/app.exe
-          retention-days: 30   # optional; default is 90 days
+          path: app-${{ github.ref_name }}-windows-x64.zip
+          retention-days: 30
+
   release:
-    # Only run on tag pushessssss
     if: startsWith(github.ref, 'refs/tags/')
     needs: build
     runs-on: ubuntu-latest
-    permissions:
-      contents: write  # needed to create a Release
+
     steps:
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
           name: windows-executable
           path: windows-executable
-      - name: Zip build
-        run: |
-          zip -j app-${{ github.ref_name }}-windows-x64.zip windows-executable/app.exe
-      - name: Create/Update GitHub Release and upload asset
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: app-${{ github.ref_name }}-windows-x64.zip
+          files: windows-executable/app-${{ github.ref_name }}-windows-x64.zip
           name: Release ${{ github.ref_name }}
           draft: false
           prerelease: false

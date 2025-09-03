@@ -40,10 +40,3 @@ exe = EXE(
     console=True,
     onefile=True
 )
-
-# Optional: copy Library folder to dist/ after build
-if LIB_DIR.is_dir():
-    target = DIST_DIR / 'Library'
-    if target.exists():
-        shutil.rmtree(target)
-    shutil.copytree(LIB_DIR, target)
