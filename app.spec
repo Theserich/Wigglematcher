@@ -39,7 +39,6 @@ exe = EXE(
     strip=False,
     upx=False,
     console=True,
-    onefile=True,
-    icon=str(SPEC_DIR / "logo.ico")
+    onefile=True
 )
 
