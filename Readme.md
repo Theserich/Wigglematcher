@@ -24,8 +24,8 @@ A PyQt5-based desktop application for data visualization and analysis with inter
 
 1. Clone the repository:
    ```bash
-   git clone <repository-url>
-   cd <repository-name>
+   git clone https://github.com/Theserich/Wigglematcher.git
+   cd Wigglemather
    ```
 
 2. Install dependencies:

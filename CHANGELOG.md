@@ -6,10 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Initial project setup
 - PyQt5-based main application window
 - Data visualization capabilities with PyQtGraph and Matplotlib
-- Editable tab widget functionality
 - Excel data import/export features
-- High DPI display support
-- Fusion UI style implementation
 
 ### Features
 - Interactive plotting interface
