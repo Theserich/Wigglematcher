@@ -63,12 +63,14 @@ class PLotWorker(QThread):
 
     def run(self):
         if self.plotButton == 'consitencyPLotButton'or self.plotButton == 'consitencyPLotButton2':
+            self.fig = Figure(dpi=100)
             #self.plotConsistency()
             self.plotOffsetFit()
         elif self.plotButton == 'individualPLotButton' or self.plotButton == 'individualPLotButton2':
+            self.fig = Figure(dpi=100)
             self.plotIndividual()
-
         else:
+            self.fig =  Figure(dpi=100)
             return
         self.finished.emit((self.fig, self.plotButton))
 

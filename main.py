@@ -7,7 +7,6 @@ import matplotlib
 import faulthandler
 faulthandler.enable()
 matplotlib.use("Qt5Agg")
-#
 
 if __name__ == '__main__':
     try:

@@ -40,6 +40,9 @@ class DataSetManager(QWidget):
         for button in self.buttonDict:
             self.__dict__[self.buttonDict[button]['progressbar']].setVisible(False)
             self.__dict__[button].clicked.connect(self.plotGraph)
+        if not self.AutoOffset.isChecked():
+            for button in ['consitencyPLotButton2','consitencyPLotButton']:
+                self.__dict__[button].setEnabled(False)
         self.changing = False
         self.shiftEdit.valueChanged.connect(self.changeShift)
         self.offsetSlider.valueChanged.connect(self.changeOffset)
