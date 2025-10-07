@@ -1,7 +1,7 @@
 from matplotlib import pyplot as plt
 from src.dataMager import Calculator
 from src.HelperFunctions import fast_random_combinations
-from numpy import ones, arange, cumsum,inf,searchsorted, max as npmax, argsort, meshgrid, log
+from numpy import ones, arange, cumsum,inf,searchsorted, max as npmax, argsort, meshgrid, log, zeros
 from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5.QtWidgets import QMainWindow,QVBoxLayout, QWidget
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -106,6 +106,41 @@ class PLotWorker(QThread):
                     self.ax.fill_between(years, h, plotptic + h, color='k', alpha=min(1 / n * 1.05, 0.9), lw=0)
                     #self.ax.fill_between(years, h, plotptic + h, color='k', alpha=min(1 / n * 1.05, 0.9), lw=0)
             self.progress.emit([percentage,self.plotButton])
+        self.ax.spines['left'].set_visible(False)
+        self.ax.spines['right'].set_visible(False)
+        self.ax.spines['top'].set_visible(False)
+        self.ax.set_yticks([])
+        self.ax.set_xlabel('calendaryear')
+        self.ax.set_ylim(top=1,bottom=0)
+
+    def plotConsistency2(self):
+        k=1
+        self.fig = Figure(dpi=100)
+        self.ax = self.fig.add_subplot(111)
+        self.ax.set_title(self.curve)
+        ps = self.calc.data[self.curve]['ps'][self.calc.wiggledata['active']]
+        slice = get_indexes(ps)
+        years = self.calc.data[self.curve]['tyears'][slice]
+        lenx = len(slice)
+        N = len(ps)
+        indexes = list(arange(N))
+        h = zeros(lenx)
+
+        combis = fast_random_combinations(indexes, i + 1, 50)
+        for j, combi in enumerate(combis):
+            ptic = 1
+            for index in combi:
+                prob = ps[index][slice]
+                ptic *= prob
+            ptic = ptic / sum(ptic)
+            plotptic = ptic/ N# / max(ptic)
+            nplot = 100
+            if j < nplot:
+                percentage = j/nplot
+                n = min(len(combis), nplot)
+                #self.figdata[i][j] = {'y':plotptic+h,'y0':h,'alpha':min(1 / n * 1.05, 0.9)}
+                self.ax.fill_between(years, h, plotptic + h, color='k', alpha=min(1 / n * 1.05, 0.9), lw=0)
+                self.progress.emit([percentage,self.plotButton])
         self.ax.spines['left'].set_visible(False)
         self.ax.spines['right'].set_visible(False)
         self.ax.spines['top'].set_visible(False)
