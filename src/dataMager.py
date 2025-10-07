@@ -1,7 +1,7 @@
 import copy
 from src.HelperFunctions import *
 from numpy import (array, exp, log, arange, nan, zeros, ones, where, full, sqrt, argsort, cumsum, prod, float64,
-                   sum as npsum, empty, asarray, pi, abs as npabs, argmax,
+                   sum as npsum, empty, asarray, pi, abs as npabs, argmax, max as npmax, min as npmin, absolute,
                    searchsorted, interp as npinterp)
 from numba import njit, prange
 from PyQt5.QtWidgets import QFileDialog
@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import QMessageBox
 from scipy.interpolate import interp1d
 from src.timer import timer
 from scipy.stats import norm
+from scipy.special import logsumexp
 
 default_plot_settings = {'dataName':'New Data','colors': ['C0','C0'],'plotbools': [True,True],'showfits':[True,False],'colorbools': [False,False],'plotbool':True,'buttonColors':['#ff5500','#000000'],'chronology':False}
 default_offset_settings = {'Manual':True,'offset':0,'offset_sig':0,'min':-100,'max':100,'step':1,'GaussianPrior':True,'mu':0,'sigma':50}
@@ -66,17 +67,20 @@ class Calculator:
             if curve is None:
                 continue
             ps = self.data[curve]['ps']
+            logps = self.data[curve]['logps']
             tyears = self.data[curve]['tyears']
             dt = abs(tyears[1] - tyears[0])
             active_mask = array(active, dtype=bool)
-            pt = prod(ps[active_mask], axis=0)
+            posterior = npsum(logps[active_mask], axis=0)
+            posterior = posterior-npmax(posterior)
+            pt = exp(posterior)
+            #pt = prod(ps[active_mask], axis=0)
             pt /= sum(pt)
             p_squared_sums = npsum(ps ** 2, axis=1) * dt
             A_is = npsum(pt * ps * dt, axis=1) / p_squared_sums
             A = prod(A_is[active_mask]) ** (1 / sqrt(len(ps[active_mask])))
             A_n = 1 / sqrt(2 * len(ps[active_mask]))
             self.data[curve]['probability'] = pt
-            self.data[curve]['ps'] = ps
             self.data[curve]['A'] = A
             self.data[curve]['A_n'] = A_n
             self.wiggledata[f'{curve}A_i'] = A_is
@@ -132,11 +136,11 @@ class Calculator:
             len_ty = len(tyears)
             len_wig = len(wiggleyears)
             len_off = len(testoffsets)
-            likelyhoods = zeros((len_off, len_ty))
+            loglikelyhoods = zeros((len_off, len_ty))
             ps_likelihood = empty((len_off, len_wig, len_ty))
             tyears = asarray(tyears)
             for j, offset in enumerate(testoffsets):
-                ps = empty((len_wig, len_ty))
+                logps = empty((len_wig, len_ty))
                 for i in range(len_wig):
                     dt = shiftyears[i]
                     age = -8033 * log(wigglefms[i]) + offset
@@ -149,17 +153,20 @@ class Calculator:
                     diff = Ri - R
                     p_i = exp(-diff ** 2 / denom) / (dRi ** 2 + dR ** 2) ** 0.5
                     ps_likelihood[j, i] = p_i * offsetprior[j]
-                    ps[i, :] = -0.5 * ((Ri - R) ** 2 / (dRi ** 2 + dR ** 2)) - 0.5 * log(
-                        2 * pi * (dRi ** 2 + dR ** 2)) + log(offsetprior[j])
-                activeps = ps[self.wiggledata['active'], :]
-                pt = npsum(activeps, axis=0)
-                likelyhoods[j] = pt
-            likelyhoods = exp(likelyhoods)  #
-            weighted_likelihood = likelyhoods  # offsetprior[:, np.newaxis]
-            posterior_age = npsum(weighted_likelihood, axis=0)
-            posterior_age /= npsum(posterior_age)
-            posterior_offset = npsum(weighted_likelihood, axis=1)
-            posterior_offset /= npsum(posterior_offset)
+                    logps[i, :] = -0.5 * ((Ri - R) ** 2 / (dRi ** 2 + dR ** 2)) - 0.5 * log(
+                        2 * pi * (dRi ** 2 + dR ** 2))
+                activeps = logps[self.wiggledata['active'], :]
+                pt = npsum(activeps, axis=0) + log(offsetprior[j])
+                loglikelyhoods[j] = pt
+
+            shifted = loglikelyhoods - npmax(loglikelyhoods)
+            likelyhoods= exp(shifted)
+
+            posterior_age_log = logsumexp(loglikelyhoods, axis=0)
+            posterior_offset_log = logsumexp(loglikelyhoods, axis=1)
+            posterior_age = exp(posterior_age_log - logsumexp(posterior_age_log))
+            posterior_offset = exp(posterior_offset_log - logsumexp(posterior_offset_log))
+
             dt_step = npabs(tyears[1] - tyears[0])
             ps = npsum(ps_likelihood, axis=0)
             #ps = npsum(exp(ps), axis=0)
@@ -179,6 +186,7 @@ class Calculator:
             age_sig = 8033 / self.wiggledata['fm'] * self.wiggledata['fm_sig']
             self.data[curve]['probability'] = posterior_age
             self.data[curve]['ps'] = ps
+            self.data[curve]['logps'] = ps
             self.data[curve]['A'] = A
             self.data[curve]['A_n'] = A_n
             self.data[curve]['testoffsets'] = testoffsets
@@ -186,6 +194,7 @@ class Calculator:
             self.data[curve]['offsetprob'] = posterior_offset
             self.data[curve]['offsetps'] = ps_likelihood
             self.data[curve]['likelihoods'] = likelyhoods
+            self.data[curve]['loglikelihoods'] = loglikelyhoods
             self.wiggledata[f'{curve}A_i'] = A_is
             self.data[curve]['fm_corr'] = exp(-age_corr / 8033)
             self.data[curve]['fm_sig_corr'] = self.wiggledata['fm_sig']
@@ -218,14 +227,10 @@ class Calculator:
         else:
             offsetprior = ones(len_off, dtype=float64) / len_off
         log_prior = log(offsetprior).astype(float64)
-
-        # --- Precompute Ri for all (offset, wiggle):
-        # age = -8033*log(wigglefms) + offset  => Ri = exp(-age/8033) = wigglefms * exp(-offset/8033)
         exp_off = exp(-testoffsets / 8033.0)[:, None]  # (O,1)
         Ri_ow = exp_off * wigglefms[None, :]  # (O,W)
         dRi_w = wigglefms_sig  # (W,)
 
-        # Common FM search band across curves
         maxsig = 15.0 * wigglefms_sig.max()
         minfmsearch = (wigglefms - maxsig).min()
         maxfmsearch = (wigglefms + maxsig).max()
@@ -233,7 +238,6 @@ class Calculator:
         for curve in self.curves:
             if curve is None:
                 continue
-
             fms = asarray(self.curveData.data[curve]['fm'], dtype=float64)
             fm_sigs = asarray(self.curveData.data[curve]['fm_sig'], dtype=float64)
             t = asarray(self.curveData.data[curve]['calendaryear'], dtype=float64)
@@ -324,6 +328,7 @@ class Calculator:
         N = len(self.wiggledata['year'])
         data['tyears'] = full(2, nan)
         data['ps'] = full(shape=(2, N), fill_value=nan)
+        data['logps'] = full(shape=(2, N), fill_value=nan)
         return data
 
     @timer
@@ -341,7 +346,7 @@ class Calculator:
                 self.data[curve] = {}
             if len(wigglefms_sig) == 0:
                 return curve, self.returnNan()
-            maxsig = 10 * max(wigglefms_sig)
+            maxsig = 20 * max(wigglefms_sig)
             minfmsearch = min(wigglefms - maxsig)
             maxfmsearch = max(wigglefms + maxsig)
             fms = self.curveData.data[curve]['fm']
@@ -349,16 +354,13 @@ class Calculator:
             t = self.curveData.data[curve]['calendaryear']
             indexes = where((fms >= minfmsearch) & (fms < maxfmsearch))[0]
             if len(indexes) == 0:
-                self.data[curve]['tyears'] = full(2, nan)
-                self.data[curve]['ps'] = full(shape=(2, N), fill_value=nan)
-                return curve, self.data[curve]
-            indexes = arange(min(indexes), max(indexes), 1)
+                return curve, self.returnNan()
+            maxshift = npmax(absolute(shiftyears))
+            indexes = arange(min(indexes)-maxshift, max(indexes)+maxshift, 1)
             years = t[indexes]
             if len(years) == 0:
-                self.data[curve]['tyears'] = full(2, nan)
-                self.data[curve]['ps'] = full(shape=(2, N), fill_value=nan)
                 return curve, self.returnNan()
-            minyear, maxyear = min(years) - min(shiftyears), max(years) - max(shiftyears)
+            minyear, maxyear = min(years), max(years)
             tyears = arange(minyear, maxyear, 1)
             self.data[curve]['tyears'] = tyears
             curvefm = interp1d(t, fms, assume_sorted=True)
@@ -374,9 +376,12 @@ class Calculator:
             dRi2 = dRi ** 2
             dR2 = dR ** 2
             denom = (2 * dRi2 + 2 * dR2) ** 0.5
+            logps = -((Ri - R) ** 2) / (2 * dRi2 + 2 * dR2)-log(denom)
             ps[:] = exp(-((Ri - R) ** 2) / (2 * dRi2 + 2 * dR2)) / denom
+
             ps /= ps.sum(axis=1, keepdims=True)
             self.data[curve]['ps'] = ps
+            self.data[curve]['logps'] = logps
             self.data[curve]['offset'] = self.offset
             self.data[curve]['offset_sig'] = self.offset_sig
             return curve, self.data[curve]

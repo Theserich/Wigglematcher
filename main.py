@@ -7,7 +7,6 @@ import matplotlib
 import faulthandler
 faulthandler.enable()
 matplotlib.use("Qt5Agg")
-#
 
 if __name__ == '__main__':
     try:
@@ -16,9 +15,6 @@ if __name__ == '__main__':
         app = QApplication(argv)
         widget = WidgetMain(Path('Library/UIFiles/MainWindow.ui'))
         widget.show()
-        #app.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps)
-        # Set the application to use high DPI scaling
-        #app.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling)
         app.setStyle('Fusion')
         exit(app.exec_())
     except Exception as e:

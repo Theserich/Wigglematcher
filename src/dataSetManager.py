@@ -36,7 +36,10 @@ class DataSetManager(QWidget):
         self.buttonDict = {'consitencyPLotButton': {'progressbar': 'progressBar', 'index': 0},
                            'individualPLotButton':{'progressbar': 'progressBar2', 'index': 0},
                            'consitencyPLotButton2':{'progressbar': 'progressBar', 'index': 1},
-                           'individualPLotButton2':{'progressbar': 'progressBar2', 'index': 1}}
+                           'individualPLotButton2':{'progressbar': 'progressBar2', 'index': 1},
+                            'N1_1': {'progressbar': 'progressBar', 'index': 0},
+                            'N1_2': {'progressbar': 'progressBar', 'index': 1}}
+
         for button in self.buttonDict:
             self.__dict__[self.buttonDict[button]['progressbar']].setVisible(False)
             self.__dict__[button].clicked.connect(self.plotGraph)
@@ -47,6 +50,11 @@ class DataSetManager(QWidget):
         self.set_Agreement_and_OffsetLabels()
         self.tableView.resizeColumnsToContents()
         self.plotWorkers = []
+
+        if not self.AutoOffset.isChecked():
+            for button in ['consitencyPLotButton2','consitencyPLotButton']:
+                self.__dict__[button].setEnabled(False)
+
         self.debounce_timer = QTimer(self)
         self.debounce_timer.setSingleShot(True)
         self.debounce_timer.timeout.connect(self.widget.redraw)

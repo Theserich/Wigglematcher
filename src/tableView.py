@@ -135,6 +135,23 @@ class MyTableView(QTableView):
         widget = self.get_top_parent(self)
         widget.redraw()
 
+    def activateDeactivateSelected(self,value):
+        selected_indexes = self.selectionModel().selectedIndexes()
+        if not selected_indexes:
+            return
+        model = self.model()
+        rows = sorted(set(index.row() for index in selected_indexes), reverse=True)
+        data = model.data
+        sorted_indexes = model.sortind
+        for row in rows:
+            sortind = sorted_indexes[row]
+            model.data['active'][sortind] = value
+        model.calc.recalc_wiggledata()
+        model.parent.recalcFlag = True
+        model.parent.recalcIndex = model.tabIndex
+        model.parent.redraw()
+
+
     def get_top_parent(self, widget):
         """Recursively find the top-most parent of a widget."""
         parent = widget.parent()
@@ -154,6 +171,14 @@ class MyTableView(QTableView):
 
         delete_action = QAction("Delete", self)
         delete_action.triggered.connect(self.deleteRows)
+        menu.addAction(delete_action)
+
+        delete_action = QAction("Activate Selected", self)
+        delete_action.triggered.connect(lambda: self.activateDeactivateSelected(True))
+        menu.addAction(delete_action)
+
+        delete_action = QAction("Dectivate Selected", self)
+        delete_action.triggered.connect(lambda: self.activateDeactivateSelected(False))
         menu.addAction(delete_action)
 
         # Optional: Add more actions here (e.g., Clear, Delete Row, etc.)
