@@ -1,7 +1,7 @@
 from matplotlib import pyplot as plt
 from src.dataMager import Calculator
 from src.HelperFunctions import fast_random_combinations
-from numpy import ones, arange, cumsum,inf,searchsorted, max as npmax, argsort, meshgrid, log, zeros
+from numpy import ones, arange, cumsum,inf,searchsorted, max as npmax, argsort, meshgrid, log
 from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5.QtWidgets import QMainWindow,QVBoxLayout, QWidget
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -67,8 +67,7 @@ class PLotWorker(QThread):
             self.plotOffsetFit()
         elif self.plotButton == 'individualPLotButton' or self.plotButton == 'individualPLotButton2':
             self.plotIndividual()
-        elif self.plotButton == 'N1_1' or self.plotButton == 'N1_2':
-            self.plotConsistency1()
+
         else:
             return
         self.finished.emit((self.fig, self.plotButton))
@@ -115,47 +114,6 @@ class PLotWorker(QThread):
         self.ax.set_ylim(top=1,bottom=0)
 
 
-    def plotConsistency1(self):
-
-        k = 1
-
-        self.fig = Figure(dpi=100)
-        self.ax = self.fig.add_subplot(111)
-        self.ax.set_title(self.curve)
-        ps = self.calc.data[self.curve]['ps'][self.calc.wiggledata['active']]
-        print(len(ps))
-        slice = get_indexes(ps)
-        years = self.calc.data[self.curve]['tyears'][slice]
-        lenx = len(slice)
-        N = len(ps)
-        indexes = list(arange(N))
-        i = len(ps)-k
-        y0line = zeros(lenx)
-
-        combis = fast_random_combinations(indexes, i + 1, 1000)
-        print(len(combis))
-        for j, combi in enumerate(combis):
-            ptic = 1
-            for index in combi:
-                prob = ps[index][slice]
-                ptic *= prob
-            ptic = ptic / sum(ptic)
-            plotptic = ptic# / max(ptic)
-            nplot = 200
-            if j < nplot:
-                n = min(len(combis), nplot)
-                percentage = int(100 / n * j)
-                alpha = min(1 / n * 1.05, 0.9)
-                self.ax.fill_between(years, y0line, plotptic, color='k', alpha=alpha, lw=0)
-                #self.ax.plot(years, plotptic, color='k',alpha=alpha)
-                self.progress.emit([percentage,self.plotButton])
-        #self.ax.spines['left'].set_visible(False)
-        self.ax.spines['right'].set_visible(False)
-        self.ax.spines['top'].set_visible(False)
-        #self.ax.set_yticks([])
-        self.ax.set_xlabel('calendaryear')
-        #self.ax.set_ylim(top=1,bottom=0)
-
     def plotIndividual(self):
         self.fig = Figure()
         self.ax = self.fig.add_subplot(111)
@@ -164,8 +122,8 @@ class PLotWorker(QThread):
         agreements = self.calc.wiggledata[f'{self.curve}A_i'][self.calc.wiggledata['active']]
         ps = self.calc.data[self.curve]['ps'][self.calc.wiggledata['active']]
         indexes = get_indexes(ps)
-
         years = self.calc.data[self.curve]['tyears'][indexes]
+
         dts = self.calc.wiggledata['year'][self.calc.wiggledata['active']]-max(self.calc.wiggledata['year'])
         sortind = argsort(dts)
         dts = dts[sortind]
@@ -228,7 +186,7 @@ class PLotWorker(QThread):
         likelihood = self.calc.data[self.curve]['likelihoods']
         agreements = self.calc.wiggledata[f'{self.curve}A_i'][self.calc.wiggledata['active']]
         X, Y = meshgrid(x, y)
-        contour = self.ax.contourf(X, Y, likelihood, cmap=plt.cm.Purples,levels=20)
+        contour = self.ax.contourf(X, Y, log(likelihood), cmap=plt.cm.Purples,levels=20)
         self.ax.set_ylabel('Offset in $^{14}$C years')
         ax_top = self.fig.add_axes(top_box, sharex=self.ax)
         ax_top.plot(x, pt, color='black')
@@ -243,6 +201,16 @@ class PLotWorker(QThread):
         cbar.ax.yaxis.set_label_position('left')
         cbar.set_label('Log Likelihood')
 
+        #try:
+        #    maxyear = x[argmax(pt)]
+        #    self.ax.set_xlim((maxyear - 20.5, maxyear + 20.5))
+        #except:
+        #    pass
+        #try:
+        #    maxoffset = y[argmax(self.calc.data[self.curve]['offsetprob'])]
+        #    self.ax.set_ylim((maxoffset - 20.5, maxoffset + 20.5))
+        #except:
+        #    pass
 
 def get_indexes(ps):
     lower= inf
