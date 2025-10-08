@@ -138,6 +138,7 @@ class Calculator:
             len_off = len(testoffsets)
             loglikelyhoods = zeros((len_off, len_ty))
             ps_likelihood = empty((len_off, len_wig, len_ty))
+            logps_likelihood = empty((len_off, len_wig, len_ty))
             tyears = asarray(tyears)
             for j, offset in enumerate(testoffsets):
                 logps = empty((len_wig, len_ty))
@@ -151,10 +152,15 @@ class Calculator:
                     dR = curvefm_sig(shifted_years)
                     denom = 2 * dRi ** 2 + 2 * dR ** 2
                     diff = Ri - R
+                    logpi = -diff ** 2 / denom - 0.5*log( 2 * pi * (dRi ** 2 + dR ** 2))
+                    #logpi = logpi-logsumexp(logpi)
                     p_i = exp(-diff ** 2 / denom) / (dRi ** 2 + dR ** 2) ** 0.5
+                    #p_i /= npsum(p_i)
+                    logps_likelihood[j,i] = logpi + log(offsetprior[j])
                     ps_likelihood[j, i] = p_i * offsetprior[j]
                     logps[i, :] = -0.5 * ((Ri - R) ** 2 / (dRi ** 2 + dR ** 2)) - 0.5 * log(
                         2 * pi * (dRi ** 2 + dR ** 2))
+                    #logps[i, :] = logps[i, :]-logsumexp(logps[i, :])
                 activeps = logps[self.wiggledata['active'], :]
                 pt = npsum(activeps, axis=0) + log(offsetprior[j])
                 loglikelyhoods[j] = pt
@@ -169,6 +175,27 @@ class Calculator:
 
             dt_step = npabs(tyears[1] - tyears[0])
             ps = npsum(ps_likelihood, axis=0)
+            for i in range(len_wig):
+                ps[i] = ps[i] / sum(ps[i])
+            posterior_age2 = prod(ps, axis=0)
+            posterior_age2 = posterior_age2 / npsum(posterior_age2)
+
+            log_posterior_samples = logsumexp(logps_likelihood, axis=0)  # shape (len_wig, n_ages)
+            # normalize each sample posterior over ages
+            log_norms = logsumexp(log_posterior_samples, axis=1, keepdims=True)
+            ps2 = exp(log_posterior_samples - log_norms)
+            posterior_age3 = prod(ps2, axis=0)
+            posterior_age3 = posterior_age3 / npsum(posterior_age3)
+
+            from matplotlib import pyplot as plt
+            fig, ax = plt.subplots(2)
+            ax[0].plot(tyears, ps2[0])
+            ax[0].plot(tyears, ps[0])
+            ax[1].plot(tyears, posterior_age)
+            ax[1].plot(tyears, posterior_age2)
+            ax[1].plot(tyears, posterior_age3)
+            plt.show()
+
             #ps = npsum(exp(ps), axis=0)
             A_is = empty(len_wig)
             for i in range(len_wig):
