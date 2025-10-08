@@ -108,9 +108,8 @@ class MainPLotWorker(QThread):
                     dy = 8033 /  calc.data[curve]['fm_corr'][calc.wiggledata['active']] * dy
                 label = f'{calc.plotsettings["dataName"]} {curve}'
                 self.data['errorbar'].append({'x': x, 'y': y, 'yerr': dy, 'color': color, 'label': label})
-                #ax0.errorbar(x, y, yerr=dy, capsize=3, color=color, fmt='x',alpha=0.5,label=label)
             self.data['ax1fill'].append({'x':calc.data[curve]['tyears']+calc.shift,'y0':zeros(len(calc.data[curve]['tyears'])),'y1':calc.data[curve]['probability'],'color':color,'label':None})
-            #ax1.fill_between(calc.data[curve]['tyears'],zeros(len(calc.data[curve]['tyears'])),calc.data[curve]['probability'],alpha=0.5,color=color,lw=0)
+            #self.data['ax1fill'].append({'x':calc.data[curve]['tyears']+calc.shift,'y0':zeros(len(calc.data[curve]['tyears'])),'y1':calc.data[curve]['probability2'],'color':'k','label':None})
             self.maxx = max(self.maxx,maxx+ rangeadd)
             self.minx = min(self.minx,minx - rangeadd)
         if calc.plotsettings['chronology'] and index == 0  and len(calc.wiggleyears)>0:
@@ -122,8 +121,6 @@ class MainPLotWorker(QThread):
     def plot_percentiles(self,calc, curve,index):
         data = calc.data[curve]
         color = calc.plotsettings['colors'][index]
-        #ylim = self.ax[1].get_ylim()
-        #yrange = ylim[1] - ylim[0]
         rangeadd = 10
         for percentile in calc.percentiles:
             mask = data[f'{percentile}%range']

@@ -1,13 +1,14 @@
 from matplotlib import pyplot as plt
 from src.dataMager import Calculator
 from src.HelperFunctions import fast_random_combinations
-from numpy import ones, arange, cumsum,inf,searchsorted, max as npmax, argsort, meshgrid, log, zeros
+from numpy import ones, arange, cumsum,inf,searchsorted, max as npmax, argsort, meshgrid, log, zeros, empty
 from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5.QtWidgets import QMainWindow,QVBoxLayout, QWidget
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from src.comset import read_settings, write_settings
 import matplotlib
+from copy import copy
 
 matplotlib.use("Qt5Agg")
 from matplotlib.figure import Figure
@@ -67,7 +68,8 @@ class PLotWorker(QThread):
             self.plotOffsetFit()
         elif self.plotButton == 'individualPLotButton' or self.plotButton == 'individualPLotButton2':
             self.plotIndividual()
-
+        elif self.plotButton == 'N1_1' or self.plotButton == 'N1_2':
+            self.plotConsistency2()
         else:
             return
         self.finished.emit((self.fig, self.plotButton))
@@ -114,39 +116,48 @@ class PLotWorker(QThread):
         self.ax.set_ylim(top=1,bottom=0)
 
     def plotConsistency2(self):
-        k=1
+        k=10
         self.fig = Figure(dpi=100)
         self.ax = self.fig.add_subplot(111)
         self.ax.set_title(self.curve)
-        ps = self.calc.data[self.curve]['ps'][self.calc.wiggledata['active']]
-        slice = get_indexes(ps)
-        years = self.calc.data[self.curve]['tyears'][slice]
-        lenx = len(slice)
-        N = len(ps)
-        indexes = list(arange(N))
-        h = zeros(lenx)
-
-        combis = fast_random_combinations(indexes, i + 1, 50)
+        calc = copy(self.calc)
+        years = calc.data[self.curve]['tyears']
+        N = sum(calc.wiggledata['active'])
+        lenx = len(years)
+        activeinds = calc.wiggledata['active']
+        indexes = []
+        for i,flag in enumerate(activeinds):
+            if flag: indexes.append(i)
+        nplot = 100
+        combis = fast_random_combinations(indexes, N-k + 1, 200)
+        Ntot = min(len(combis),nplot)
+        pts = empty(shape=(Ntot,lenx))
         for j, combi in enumerate(combis):
-            ptic = 1
-            for index in combi:
-                prob = ps[index][slice]
-                ptic *= prob
-            ptic = ptic / sum(ptic)
-            plotptic = ptic/ N# / max(ptic)
-            nplot = 100
             if j < nplot:
-                percentage = j/nplot
-                n = min(len(combis), nplot)
-                #self.figdata[i][j] = {'y':plotptic+h,'y0':h,'alpha':min(1 / n * 1.05, 0.9)}
-                self.ax.fill_between(years, h, plotptic + h, color='k', alpha=min(1 / n * 1.05, 0.9), lw=0)
-                self.progress.emit([percentage,self.plotButton])
+                newactivinds = copy(activeinds)
+                for i in range(len(newactivinds)):
+                    if i in combi:
+                        newactivinds[i] = True
+                    else:
+                        newactivinds[i] = False
+                calc.wiggledata['active'] = newactivinds
+                calc.calc_posterior_distribution()
+                pt = calc.data[self.curve]['probability']
+                pts[j] = pt
+        slices = get_indexes(pts)
+        lenx = len(slices)
+        for pt in pts:
+            percentage = int(j / Ntot * 100)
+            self.ax.fill_between(years[slices], zeros(lenx), pt[slices], color='k', alpha=min(1 / Ntot * 1.05, 0.9), lw=0)
+            self.progress.emit([percentage,self.plotButton])
+
         self.ax.spines['left'].set_visible(False)
         self.ax.spines['right'].set_visible(False)
         self.ax.spines['top'].set_visible(False)
         self.ax.set_yticks([])
         self.ax.set_xlabel('calendaryear')
         self.ax.set_ylim(top=1,bottom=0)
+        self.progress.emit([100, self.plotButton])
 
 
     def plotIndividual(self):
@@ -221,7 +232,7 @@ class PLotWorker(QThread):
         likelihood = self.calc.data[self.curve]['likelihoods']
         agreements = self.calc.wiggledata[f'{self.curve}A_i'][self.calc.wiggledata['active']]
         X, Y = meshgrid(x, y)
-        contour = self.ax.contourf(X, Y, log(likelihood), cmap=plt.cm.Purples,levels=20)
+        contour = self.ax.contourf(X, Y, likelihood, cmap=plt.cm.Purples,levels=20)
         self.ax.set_ylabel('Offset in $^{14}$C years')
         ax_top = self.fig.add_axes(top_box, sharex=self.ax)
         ax_top.plot(x, pt, color='black')
@@ -234,7 +245,7 @@ class PLotWorker(QThread):
         cbar = self.fig.colorbar(contour, cax=cbar_ax)
         cbar.ax.yaxis.set_ticks_position('left')
         cbar.ax.yaxis.set_label_position('left')
-        cbar.set_label('Log Likelihood')
+        cbar.set_label('Likelihood')
 
         #try:
         #    maxyear = x[argmax(pt)]
