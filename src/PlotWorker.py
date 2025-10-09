@@ -118,7 +118,7 @@ class PLotWorker(QThread):
         self.ax.set_ylim(top=1,bottom=0)
 
     def plotConsistency2(self):
-        k=10
+        k=1000
         nplot = 100
         self.fig = Figure(dpi=100)
         self.ax = self.fig.add_subplot(111)
@@ -126,6 +126,8 @@ class PLotWorker(QThread):
         calc = deepcopy(self.calc)
         years = calc.data[self.curve]['tyears']
         N = sum(calc.wiggledata['active'])
+        if k>N:
+            k=N
         lenx = len(years)
         activeinds = calc.wiggledata['active']
         indexes = []
@@ -167,7 +169,6 @@ class PLotWorker(QThread):
         self.ax.spines['top'].set_visible(False)
         self.ax.set_yticks([])
         self.ax.set_xlabel('calendaryear')
-        self.ax.set_ylim(top=1,bottom=0)
         self.progress.emit([100, self.plotButton])
 
 

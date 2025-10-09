@@ -145,11 +145,11 @@ class Calculator:
             dR = curvefm_sig(shifted_years)[None, :, :]   # (1, len_wig, len_ty)
             dRi = wigglefms_sig[:, None][None, :, :]   # (1, len_wig, 1)
             offsets = testoffsets[:, None, None]  # (len_off, 1, 1)  # (len_off, 1, 1)
-            log_offsets_prior = np.log(offsetprior)
+
             ages = -8033 * np.log(wigglefms[None, :, None]) + offsets  # (len_off, len_wig, 1)
             Ri = np.exp(-ages / 8033)  # (len_off, len_wig, 1)
             log_pi = -(Ri - R) ** 2 / (2 * dRi ** 2 + 2 * dR ** 2) - 0.5 * np.log(2 * np.pi * (dRi ** 2 + dR ** 2))  # (len_off, len_wig, len_ty)
-            ps_loglikelihoods = log_pi + log_offsets_prior[:, None, None] # (len_off, len_wig, len_ty)
+            ps_loglikelihoods = log_pi  # (len_off, len_wig, len_ty)
             self.data[curve]['ps_loglikelihoods'] = ps_loglikelihoods
             self.data[curve]['testoffsets'] = testoffsets
             self.data[curve]['offsetprior'] = offsetprior
@@ -165,9 +165,12 @@ class Calculator:
                 continue
             testoffsets = self.data[curve]['testoffsets']
             tyears = self.data[curve]['tyears']
+            offsetprior = self.data[curve]['offsetprior']
+            log_offsets_prior = np.log(offsetprior)[:, None, None]
             ps_loglikelihoods = self.data[curve]['ps_loglikelihoods']#(len_off, len_wig, len_ty)
             n_active = sum(active_idx)
-            active_ps = ps_loglikelihoods[:, active_idx, :]  # (len_off, n_active, len_ty)
+            weighted_ps_loglikelihoods =  self.data[curve]['ps_loglikelihoods']+log_offsets_prior
+            active_ps = weighted_ps_loglikelihoods[:, active_idx, :]  # (len_off, n_active, len_ty)
             loglikelyhoods = np.sum(active_ps, axis=1)
             max_loglike = npmax(loglikelyhoods)
             shifted = loglikelyhoods - max_loglike
@@ -177,9 +180,6 @@ class Calculator:
             posterior_age = exp(posterior_age_log - logsumexp(posterior_age_log))
             posterior_offset = exp(posterior_offset_log - logsumexp(posterior_offset_log))
             dt_step = npabs(tyears[1] - tyears[0])
-            max_loglike = npmax(ps_loglikelihoods)
-            shifted = ps_loglikelihoods - max_loglike
-            ps_likelihoods = exp(shifted)
             posterior_offset_log_expanded = posterior_offset_log[:, None, None]
             posterior_ps_loglikelihoods = ps_loglikelihoods + posterior_offset_log_expanded
             log_ps = logsumexp(posterior_ps_loglikelihoods, axis=0)
@@ -208,7 +208,7 @@ class Calculator:
             self.data[curve]['A'] = A_overall
             self.data[curve]['A_n'] = A_n
             self.data[curve]['offsetprob'] = posterior_offset
-            self.data[curve]['offsetps'] = ps_likelihoods
+            #self.data[curve]['offsetps'] = ps_likelihoods
             self.data[curve]['likelihoods'] = likelyhoods
             self.data[curve]['loglikelihoods'] = loglikelyhoods
             self.wiggledata[f'{curve}A_i'] = A_is
@@ -216,6 +216,40 @@ class Calculator:
             self.data[curve]['fm_sig_corr'] = self.wiggledata['fm_sig']
             self.data[curve]['offset'] = offset
             self.data[curve]['offset_sig'] = offset_sig
+        self.calc_Conf_interval()
+
+
+    def calc_Conf_interval(self):
+        for curve in self.curves:
+            if curve not in self.data:
+                self.data[curve] = {}
+            if curve is None:
+                continue
+            active_idx = self.wiggledata['active']
+            n=sum(active_idx)
+            A_is_active = self.wiggledata[f'{curve}A_i'][active_idx]
+            # convert to log scale (A_i in percent -> fraction)
+            x = np.log(A_is_active / 100.0)
+
+            # sample mean and sd on log scale
+            x_bar = np.mean(x)
+            s_x = np.std(x, ddof=1)  # use ddof=1 for unbiased sample sd
+
+            # standard error of mean on log scale
+            se_x = s_x / np.sqrt(n)
+
+            # 95% CI on log scale
+            z = 1.96
+            lower_log = x_bar - z * se_x
+            upper_log = x_bar + z * se_x
+
+            # transform back to percent
+            A_overall = 100.0 * np.exp(x_bar)
+            A_CI_lower = 100.0 * np.exp(lower_log)
+            A_CI_upper = 100.0 * np.exp(upper_log)
+
+            print("A_overall = {:.2f}%".format(A_overall))
+            print("95% CI = [{:.2f}%, {:.2f}%]".format(A_CI_lower, A_CI_upper))
 
     def returnNan(self):
         data = {}
