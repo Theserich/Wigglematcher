@@ -1,6 +1,6 @@
 import copy
 from src.HelperFunctions import *
-from numpy import (array, exp, log, arange, nan, zeros, ones, where, full, sqrt, argsort, cumsum, prod, float64,
+from numpy import (array, exp, log, arange, nan, zeros, ones, where, full, sqrt, argsort, cumsum, prod, float64, mean,
                    sum as npsum, empty, asarray, pi, abs as npabs, argmax, max as npmax, min as npmin, absolute,
                    searchsorted, interp as npinterp)
 from numba import njit, prange
@@ -58,7 +58,6 @@ class Calculator:
         else:
             self.wiggledata['dt'] = self.wiggledata['year']-max(self.wiggledata['year'])
 
-
     def calc_bayesian_posterior(self):
         N = len(self.wiggledata['year'])
         active = self.wiggledata['active']
@@ -87,6 +86,7 @@ class Calculator:
             self.wiggledata[f'{curve}A_i'] = A_is
             self.data[curve]['Offset'] = self.offset
 
+    @timer
     def recalc_all(self):
         self.offset = self.offset_settings['offset']
         self.offset_sig = self.offset_settings['offset_sig']
@@ -102,6 +102,7 @@ class Calculator:
         self.calc_posterior_distribution()
         self.calc_percentile_ranges()
 
+    @timer
     def calc_posterior_distribution(self):
         if self.offset_settings['Manual']:
             self.calc_bayesian_posterior()
@@ -153,6 +154,7 @@ class Calculator:
             self.data[curve]['testoffsets'] = testoffsets
             self.data[curve]['offsetprior'] = offsetprior
 
+    @timer
     def calcBayesianPosterior_Offset(self):
         active_idx = self.wiggledata['active']
         len_wig = len(self.wiggledata['year'])
@@ -163,20 +165,25 @@ class Calculator:
                 continue
             testoffsets = self.data[curve]['testoffsets']
             tyears = self.data[curve]['tyears']
-            ps_loglikelihoods = self.data[curve]['ps_loglikelihoods']
+            ps_loglikelihoods = self.data[curve]['ps_loglikelihoods']#(len_off, len_wig, len_ty)
             n_active = sum(active_idx)
             active_ps = ps_loglikelihoods[:, active_idx, :]  # (len_off, n_active, len_ty)
             loglikelyhoods = np.sum(active_ps, axis=1)
-            shifted = loglikelyhoods - npmax(loglikelyhoods)
+            max_loglike = npmax(loglikelyhoods)
+            shifted = loglikelyhoods - max_loglike
             likelyhoods = exp(shifted)
-            posterior_age_log = logsumexp(loglikelyhoods, axis=0)
-            posterior_offset_log = logsumexp(loglikelyhoods, axis=1)
+            posterior_age_log = logsumexp(loglikelyhoods, axis=0)# (len_ty)
+            posterior_offset_log = logsumexp(loglikelyhoods, axis=1)# (len_off)
             posterior_age = exp(posterior_age_log - logsumexp(posterior_age_log))
             posterior_offset = exp(posterior_offset_log - logsumexp(posterior_offset_log))
             dt_step = npabs(tyears[1] - tyears[0])
-            shifted = ps_loglikelihoods - npmax(ps_loglikelihoods)
+            max_loglike = npmax(ps_loglikelihoods)
+            shifted = ps_loglikelihoods - max_loglike
             ps_likelihoods = exp(shifted)
-            log_ps = logsumexp(ps_loglikelihoods, axis=0)
+            posterior_offset_log_expanded = posterior_offset_log[:, None, None]
+            posterior_ps_loglikelihoods = ps_loglikelihoods + posterior_offset_log_expanded
+            log_ps = logsumexp(posterior_ps_loglikelihoods, axis=0)
+            #log_ps = logsumexp(ps_loglikelihoods, axis=0)
             log_norms = logsumexp(log_ps, axis=1, keepdims=True)
             ps = exp(log_ps - log_norms)
             A_is = empty(len_wig)
@@ -184,7 +191,9 @@ class Calculator:
                 a = npsum(posterior_age * p) * dt_step
                 b = npsum(p ** 2) * dt_step
                 A_is[i] = a / b
-            A = prod(A_is[active_idx]) ** (1 / sqrt(n_active))
+            A_is_active = A_is[active_idx]
+            #A_overall = prod(A_is_active) ** (1 / sqrt(n_active))
+            A_overall = np.exp(mean(log(A_is_active)))
             A_n = 1 / (2 * n_active) ** 0.5
             offset = testoffsets[argmax(posterior_offset)]
             cdf = cumsum(posterior_offset)
@@ -195,8 +204,8 @@ class Calculator:
             self.data[curve]['probability'] = posterior_age
             self.data[curve]['probability2'] = posterior_age
             self.data[curve]['ps'] = ps
-            self.data[curve]['logps'] = ps
-            self.data[curve]['A'] = A
+            self.data[curve]['logps'] = log_ps
+            self.data[curve]['A'] = A_overall
             self.data[curve]['A_n'] = A_n
             self.data[curve]['offsetprob'] = posterior_offset
             self.data[curve]['offsetps'] = ps_likelihoods

@@ -8,7 +8,9 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from src.comset import read_settings, write_settings
 import matplotlib
-from copy import copy
+from scipy.special import logsumexp
+from numpy import sum as npsum, exp
+from copy import copy, deepcopy
 
 matplotlib.use("Qt5Agg")
 from matplotlib.figure import Figure
@@ -117,10 +119,11 @@ class PLotWorker(QThread):
 
     def plotConsistency2(self):
         k=10
+        nplot = 100
         self.fig = Figure(dpi=100)
         self.ax = self.fig.add_subplot(111)
         self.ax.set_title(self.curve)
-        calc = copy(self.calc)
+        calc = deepcopy(self.calc)
         years = calc.data[self.curve]['tyears']
         N = sum(calc.wiggledata['active'])
         lenx = len(years)
@@ -128,7 +131,6 @@ class PLotWorker(QThread):
         indexes = []
         for i,flag in enumerate(activeinds):
             if flag: indexes.append(i)
-        nplot = 100
         combis = fast_random_combinations(indexes, N-k + 1, 200)
         Ntot = min(len(combis),nplot)
         pts = empty(shape=(Ntot,lenx))
@@ -141,16 +143,25 @@ class PLotWorker(QThread):
                     else:
                         newactivinds[i] = False
                 calc.wiggledata['active'] = newactivinds
-                calc.calc_posterior_distribution()
-                pt = calc.data[self.curve]['probability']
+                if calc.offset_settings['Manual']:
+                    calc.calc_posterior_distribution()
+                    pt = calc.data[self.curve]['probability']
+                else:
+                    active_idx = calc.wiggledata['active']
+                    ps_loglikelihoods = calc.data[self.curve]['ps_loglikelihoods']
+                    active_ps = ps_loglikelihoods[:, active_idx, :]  # (len_off, n_active, len_ty)
+                    loglikelyhoods = npsum(active_ps, axis=1)
+                    posterior_age_log = logsumexp(loglikelyhoods, axis=0)
+                    pt = exp(posterior_age_log - logsumexp(posterior_age_log))
                 pts[j] = pt
         slices = get_indexes(pts)
         lenx = len(slices)
-        for pt in pts:
+        for j,pt in enumerate(pts):
             percentage = int(j / Ntot * 100)
             self.ax.fill_between(years[slices], zeros(lenx), pt[slices], color='k', alpha=min(1 / Ntot * 1.05, 0.9), lw=0)
             self.progress.emit([percentage,self.plotButton])
-
+        if calc.plotsettings['chronology']  and len(calc.wiggleyears)>0:
+            self.ax.axvline(max(calc.wiggleyears)+calc.shift,color='k')
         self.ax.spines['left'].set_visible(False)
         self.ax.spines['right'].set_visible(False)
         self.ax.spines['top'].set_visible(False)
