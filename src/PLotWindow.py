@@ -100,7 +100,6 @@ class PlotWindow_test(QMainWindow):
 
     def animate_step_cons(self):
         nplot = 100
-
         h = ones(self.lenx) * (self.N - self.i - 1) / self.N * 1
         self.combis.setdefault(
             self.i, fast_random_combinations(self.indexes, self.i + 1, 20)

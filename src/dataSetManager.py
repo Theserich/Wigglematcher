@@ -81,6 +81,7 @@ class DataSetManager(QWidget):
     def set_offsetValues(self):
         if self.changing == True:
             return
+        presettings = self.calc.offset_settings.copy()
         sender = self.sender().objectName()
         preManual = self.calc.offset_settings['Manual']
         for key in ['min','max','step','offset','offset_sig','mu','sigma']:
@@ -99,6 +100,8 @@ class DataSetManager(QWidget):
             self.calc.offset_settings['GaussianPrior'] = True
         else:
             self.calc.offset_settings['GaussianPrior'] = False
+        if presettings == self.calc.offset_settings:
+            return
         self.activate_offset_fields()
         self.widget.recalcFlag = True
         self.widget.recalcIndex = self.tabIndex

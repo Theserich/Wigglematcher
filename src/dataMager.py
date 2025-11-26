@@ -12,6 +12,7 @@ from src.timer import timer
 from scipy.stats import norm
 from scipy.special import logsumexp
 import numpy as np
+from src.JaxComputation import *
 
 default_plot_settings = {'dataName':'New Data','colors': ['C0','C0'],'plotbools': [True,True],'showfits':[True,False],'colorbools': [False,False],'plotbool':True,'buttonColors':['#ff5500','#000000'],'chronology':False}
 default_offset_settings = {'Manual':True,'offset':0,'offset_sig':0,'min':-100,'max':100,'step':1,'GaussianPrior':True,'mu':0,'sigma':50}
@@ -98,119 +99,75 @@ class Calculator:
             self.calcOffset()
             self.calc_probs()
         else:
-            self.calc_probs_with_offsetfit()
+            self.calc_probs_with_offsetfit_likelihoods()
         self.calc_posterior_distribution()
         self.calc_percentile_ranges()
 
-    @timer
     def calc_posterior_distribution(self):
         if self.offset_settings['Manual']:
             self.calc_bayesian_posterior()
         else:
-            self.calcBayesianPosterior_Offset()
-    @timer
-    def calc_probs_with_offsetfit(self):
+            self.calcBayesianPosterior_Offset_jax()
+
+    def calc_probs_with_offsetfit_likelihoods(self):
         self.curves = self.curveData.curves
+        active_idx = self.wiggledata['active']
+        wiggleyears = self.wiggledata['year']
         wigglefms = self.wiggledata['fm']
         wigglefms_sig = self.wiggledata['fm_sig']
         testoffsets = arange(self.offset_settings['min'], self.offset_settings['max'], self.offset_settings['step'])
         if self.offset_settings['GaussianPrior']:
-            offsetprior = norm.pdf(testoffsets, loc=self.offset_settings['mu'], scale=self.offset_settings['sigma'])*self.offset_settings['step']
+            offsetprior = norm.pdf(testoffsets, loc=self.offset_settings['mu'], scale=self.offset_settings['sigma']) * \
+                          self.offset_settings['step']
             offsetprior /= offsetprior.sum()
         else:
             offsetprior = ones(len(testoffsets)) / len(testoffsets)
-        shiftyears = self.wiggledata['dt']
         for curve in self.curves:
-            if curve is None:
+            if curve is None or len(wigglefms) == 0 or np.isnan(wigglefms).any():
                 continue
-            maxsig = 15 * max(wigglefms_sig)
-            minfmsearch = min(wigglefms - maxsig)
-            maxfmsearch = max(wigglefms + maxsig)
-            fms = self.curveData.data[curve]['fm']
-            fm_sigs = self.curveData.data[curve]['fm_sig']
-            t = self.curveData.data[curve]['calendaryear']
-            indexes = where((fms >= minfmsearch) & (fms < maxfmsearch))[0]
-            indexes = arange(min(indexes), max(indexes), 1)
-            years = t[indexes]
-            minyear, maxyear = min(years) - min(shiftyears), max(years) - max(shiftyears)
-            tyears = arange(minyear, maxyear, 1)
-            self.data[curve]['tyears'] = tyears
-            curvefm = interp1d(t, fms, assume_sorted=True)
-            curvefm_sig = interp1d(t, fm_sigs, assume_sorted=True)
-            #len_ty = len(tyears)
-            #len_wig = len(wiggleyears)
-            #len_off = len(testoffsets)
+            curvefms = self.curveData.data[curve]['fm']
+            curvefm_sigs = self.curveData.data[curve]['fm_sig']
+            curvetimes = self.curveData.data[curve]['calendaryear']
+            mask = get_year_mask(curvefms, curvefm_sigs, wigglefms, wigglefms_sig, testoffsets)
+            years = curvetimes[mask]
+            tyears = np.arange(int(min(years)), int(max(years)), 1)
+            curvefm_interpol = jax_interp1d(curvetimes, curvefms)
+            curvefm_sig_interpol = jax_interp1d(curvetimes, curvefm_sigs)
+            maxref = jnp.max(wiggleyears)
+            shiftyears = wiggleyears - maxref  # (len_wig,)
             shifted_years = tyears[None, :] + shiftyears[:, None]  # (len_wig, len_ty)
-            R = curvefm(shifted_years)[None, :, :]   # (1, len_wig, len_ty)
-            dR = curvefm_sig(shifted_years)[None, :, :]   # (1, len_wig, len_ty)
-            dRi = wigglefms_sig[:, None][None, :, :]   # (1, len_wig, 1)
-            offsets = testoffsets[:, None, None]  # (len_off, 1, 1)  # (len_off, 1, 1)
-
-            ages = -8033 * np.log(wigglefms[None, :, None]) + offsets  # (len_off, len_wig, 1)
-            Ri = np.exp(-ages / 8033)  # (len_off, len_wig, 1)
-            log_pi = -(Ri - R) ** 2 / (2 * dRi ** 2 + 2 * dR ** 2) - 0.5 * np.log(2 * np.pi * (dRi ** 2 + dR ** 2))  # (len_off, len_wig, len_ty)
-            ps_loglikelihoods = log_pi  # (len_off, len_wig, len_ty)
-            self.data[curve]['ps_loglikelihoods'] = ps_loglikelihoods
+            R = curvefm_interpol(shifted_years)[None, :, :]  # (1, len_wig, len_ty)
+            dR = curvefm_sig_interpol(shifted_years)[None, :, :]
+            ps_loglikelihoods= calc_ps_loglikelihoods(wigglefms, wigglefms_sig, testoffsets, R, dR)
             self.data[curve]['testoffsets'] = testoffsets
             self.data[curve]['offsetprior'] = offsetprior
+            self.data[curve]['tyears'] = tyears
+            self.data[curve]['ps_loglikelihoods'] = ps_loglikelihoods
 
-    @timer
-    def calcBayesianPosterior_Offset(self):
+
+    def calcBayesianPosterior_Offset_jax(self):
         active_idx = self.wiggledata['active']
-        len_wig = len(self.wiggledata['year'])
         for curve in self.curves:
             if curve not in self.data:
                 self.data[curve] = {}
             if curve is None:
                 continue
             testoffsets = self.data[curve]['testoffsets']
-            tyears = self.data[curve]['tyears']
             offsetprior = self.data[curve]['offsetprior']
-            log_offsets_prior = np.log(offsetprior)[:, None, None]
-            ps_loglikelihoods = self.data[curve]['ps_loglikelihoods']#(len_off, len_wig, len_ty)
-            n_active = sum(active_idx)
-            weighted_ps_loglikelihoods =  self.data[curve]['ps_loglikelihoods']+log_offsets_prior
-            active_ps = weighted_ps_loglikelihoods[:, active_idx, :]  # (len_off, n_active, len_ty)
-            loglikelyhoods = np.sum(active_ps, axis=1)
-            max_loglike = npmax(loglikelyhoods)
-            shifted = loglikelyhoods - max_loglike
-            likelyhoods = exp(shifted)
-            posterior_age_log = logsumexp(loglikelyhoods, axis=0)# (len_ty)
-            posterior_offset_log = logsumexp(loglikelyhoods, axis=1)# (len_off)
-            posterior_age = exp(posterior_age_log - logsumexp(posterior_age_log))
-            posterior_offset = exp(posterior_offset_log - logsumexp(posterior_offset_log))
-            dt_step = npabs(tyears[1] - tyears[0])
-            posterior_offset_log_expanded = posterior_offset_log[:, None, None]
-            posterior_ps_loglikelihoods = ps_loglikelihoods + posterior_offset_log_expanded
-            log_ps = logsumexp(posterior_ps_loglikelihoods, axis=0)
-            #log_ps = logsumexp(ps_loglikelihoods, axis=0)
-            log_norms = logsumexp(log_ps, axis=1, keepdims=True)
-            ps = exp(log_ps - log_norms)
-            A_is = empty(len_wig)
-            for i,p in enumerate(ps):
-                a = npsum(posterior_age * p) * dt_step
-                b = npsum(p ** 2) * dt_step
-                A_is[i] = a / b
-            A_is_active = A_is[active_idx]
-            #A_overall = prod(A_is_active) ** (1 / sqrt(n_active))
-            A_overall = np.exp(mean(log(A_is_active)))
-            A_n = 1 / (2 * n_active) ** 0.5
+            ps_loglikelihoods = self.data[curve]['ps_loglikelihoods']
+            posterior_age, posterior_offset, likelyhoods, ps, A_overall, A_is, A_n = calc_posterior(ps_loglikelihoods,offsetprior,active_idx)
             offset = testoffsets[argmax(posterior_offset)]
             cdf = cumsum(posterior_offset)
             offset_sig = testoffsets[searchsorted(cdf, 0.84)] - testoffsets[searchsorted(cdf, 0.16)]
             age_corr = -8033 * log(self.wiggledata['fm']) + offset
-            age_sig = 8033 / self.wiggledata['fm'] * self.wiggledata['fm_sig']
-
             self.data[curve]['probability'] = posterior_age
             self.data[curve]['probability2'] = posterior_age
             self.data[curve]['ps'] = ps
-            self.data[curve]['logps'] = log_ps
             self.data[curve]['A'] = A_overall
             self.data[curve]['A_n'] = A_n
             self.data[curve]['offsetprob'] = posterior_offset
             #self.data[curve]['offsetps'] = ps_likelihoods
             self.data[curve]['likelihoods'] = likelyhoods
-            self.data[curve]['loglikelihoods'] = loglikelyhoods
             self.wiggledata[f'{curve}A_i'] = A_is
             self.data[curve]['fm_corr'] = exp(-age_corr / 8033)
             self.data[curve]['fm_sig_corr'] = self.wiggledata['fm_sig']
@@ -242,14 +199,11 @@ class Calculator:
             z = 1.96
             lower_log = x_bar - z * se_x
             upper_log = x_bar + z * se_x
-
             # transform back to percent
             A_overall = 100.0 * np.exp(x_bar)
             A_CI_lower = 100.0 * np.exp(lower_log)
             A_CI_upper = 100.0 * np.exp(upper_log)
 
-            print("A_overall = {:.2f}%".format(A_overall))
-            print("95% CI = [{:.2f}%, {:.2f}%]".format(A_CI_lower, A_CI_upper))
 
     def returnNan(self):
         data = {}
@@ -259,7 +213,6 @@ class Calculator:
         data['logps'] = full(shape=(2, N), fill_value=nan)
         return data
 
-    @timer
     def calc_probs(self):
         self.curves = self.curveData.curves
         wiggleyears = self.wiggledata['year']
