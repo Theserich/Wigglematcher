@@ -24,10 +24,6 @@ def jax_interp1d(x_data, y_data):
 
     return interpolator
 
-def _gaussian_pdf_jax(x, mu=0.0, sigma=1.0):
-    # stable Gaussian pdf
-    z = (x - mu) / sigma
-    return jnp.exp(-0.5 * z * z) / (jnp.sqrt(2.0 * jnp.pi) * sigma)
 
 @jit
 def bayesian_wiggler_offset_jax(wigglefms, wigglefms_sig,
