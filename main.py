@@ -1,8 +1,5 @@
 from sys import argv, exit
-import jax.numpy as jnp
-from jax.scipy.special import logsumexp
-from jax.scipy.stats import norm
-from jax import jit
+import jax
 from PyQt5.QtWidgets import QApplication
 from src.MainWindow import WidgetMain
 from pyqtgraph.Qt import QtCore
