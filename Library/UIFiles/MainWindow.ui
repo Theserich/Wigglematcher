@@ -262,7 +262,7 @@
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionLoad_in_Curve">
    <property name="text">
-    <string>📁Load in .14C curve</string>
+    <string>📁Load calibration curve</string>
    </property>
   </action>
   <action name="actionLoad_in_curve_from_xlsx">

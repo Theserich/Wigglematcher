@@ -1,4 +1,4 @@
-
+import csv
 from numpy import array, argsort, sort, unique, where, exp, log
 import pandas as pd
 import math
@@ -32,10 +32,34 @@ def loadexcel(filename):
     return df
 
 def loadcsv(filename):
-    edf = pd.read_csv(filename)
+    data = {}
+    with open(filename, 'r', encoding='utf-8') as f:
+        sample = f.read(2048)
+        f.seek(0)
+        # Detect delimiter automatically
+        dialect = csv.Sniffer().sniff(sample, delimiters=";,")
+        reader = csv.DictReader(f, dialect=dialect)
+
+        # Initialize dictionary keys
+        for key in reader.fieldnames:
+            clean_key = key.strip().lstrip('\ufeff')
+            data[clean_key] = []
+
+        # Fill columns
+        for row in reader:
+            for key, value in row.items():
+                key = key.strip().lstrip('\ufeff')
+                value = value.strip()
+                # Try numeric conversion
+                try:
+                    value = float(value)
+                except ValueError:
+                    pass
+
+                data[key].append(value)
     df = {}
-    for key in edf:
-        df[key] = array(edf[key])
+    for key in data:
+        df[key] = array(data[key])
     return df
 
 
@@ -61,9 +85,7 @@ def getF14CfromDataframe(df):
     for i,time in enumerate(df['bp']):
         df['bp'][i] = round(time,0)
     bpdf = groupdf(df, 'bp')
-    halftime = 8267
     for i,bp in enumerate(bpdf.keys()):
-        N = len(bpdf[bp]['fm'])
         weight = 1/bpdf[bp]['fm_sig']**2
         fm = float(sum(weight*bpdf[bp]['fm'])/sum(weight))
         fm_sig = float(sum(weight ** 2 * bpdf[bp]['fm_sig'] ** 2) ** 0.5) / sum(weight)
@@ -142,8 +164,8 @@ def parse_excel(file_path):
     df = loadexcel(file_path)
     return parse_dictionary(df)
 
-def parse_csv(self, file_path):
-    df = loadcsv(file_path)  # pandas or your own loader
+def parse_csv(file_path):
+    df = loadcsv(file_path)
     return parse_dictionary(df)
 
 
