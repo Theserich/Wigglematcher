@@ -301,6 +301,7 @@ class DataSetManager(QWidget):
         name = widget.objectName()
         index = int(name[-1])
         self.calc.plotsettings['showfits'][index] = widget.isChecked()
+        print(self.calc.plotsettings['showfits'][index])
         self.widget.redraw()
 
     def remove_dataset(self):

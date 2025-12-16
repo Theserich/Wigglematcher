@@ -25,8 +25,8 @@ class Calculator:
         self.data = {}
         for curve in self.curves:
             self.data[curve] = {}
-        self.plotsettings = default_plot_settings
-        self.offset_settings = default_offset_settings
+        self.plotsettings = copy.copy(default_plot_settings)
+        self.offset_settings = copy.copy(default_offset_settings)
         self.gauss = False
         self.syntherror = 1.5
         self.amp = 0.8
