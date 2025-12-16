@@ -255,7 +255,6 @@
      <string>File</string>
     </property>
     <addaction name="actionLoad_in_Curve"/>
-    <addaction name="actionLoad_in_curve_from_xlsx"/>
     <addaction name="actionSave_results_to_xlsx"/>
    </widget>
    <addaction name="menuFile"/>

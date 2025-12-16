@@ -1,5 +1,5 @@
 
-from numpy import array, argsort, sort, unique, where
+from numpy import array, argsort, sort, unique, where, exp, log
 import pandas as pd
 import math
 import random
@@ -30,6 +30,14 @@ def loadexcel(filename):
     for key in edf:
         df[key] = array(edf[key])
     return df
+
+def loadcsv(filename):
+    edf = pd.read_csv(filename)
+    df = {}
+    for key in edf:
+        df[key] = array(edf[key])
+    return df
+
 
 def fast_random_combinations(input_list, r, n):
     if r > len(input_list):
@@ -71,3 +79,77 @@ def getF14CfromDataframe(df):
     fms = fms[sortind]
     fm_sigs = fm_sigs[sortind]
     return fms, fm_sigs, years
+
+def parse_oxcal_file(file_path):
+    headers = ['bp', '14C age', 'Sigma1']
+    result = {h: [] for h in headers}
+    with open(file_path, 'r') as f:
+        lines = f.readlines()
+    start = True
+    second_header = False
+    for line in lines:
+        if line.lstrip().startswith('#') and start:
+            continue
+        elif line.lstrip().startswith('#'):
+            second_header = True
+            continue
+        start = False
+        line = line.replace('!', '').replace('?', '')
+        if not second_header:
+            values = line.strip().split(',')
+            result['bp'].append(float(values[0]))
+            result['14C age'].append(float(values[1]))
+            result['Sigma1'].append(float(values[2]))
+        else:
+            values = line.strip().split('\t')
+            bp = 1950 - float(values[0])
+            age = -8033 * log(float(values[3]))
+            sig = 8033 / float(values[3]) * float(values[4])
+            result['bp'].append(bp)
+            result['14C age'].append(age)
+            result['Sigma1'].append(sig)
+    bp = array(result['bp'])
+    age = array(result['14C age'])
+    sig = array(result['Sigma1'])
+    return {
+        'bp': bp,
+        'fm': exp(-age / 8033),
+        'fm_sig': exp(-age / 8033) / 8033 * sig
+    }
+
+def parse_dictionary(df):
+    keys = df.keys()
+    data = {}
+    if 'age' in keys and 'age_sig' in keys:
+        data['fm'] = exp(-df['age'] / 8033)
+        data['fm_sig'] = data['fm'] / 8033 * df['age_sig']
+    elif 'fm' in keys and 'fm_sig' in keys:
+        data['fm'] = df['fm']
+        data['fm_sig'] = df['fm_sig']
+    else:
+        raise ValueError("Excel or CSV must contain age/age_sig or fm/fm_sig")
+    if 'bp' in keys:
+        data['bp'] = df['bp']
+    elif 'year' in keys:
+        data['bp'] = 1950 - df['year']
+    elif 'calendaryear' in keys:
+        data['bp'] = 1950 - df['calendaryear']
+    else:
+        raise ValueError("Excel or CSV must contain bp, year, or calendaryear")
+    return data
+
+def parse_excel(file_path):
+    df = loadexcel(file_path)
+    return parse_dictionary(df)
+
+def parse_csv(self, file_path):
+    df = loadcsv(file_path)  # pandas or your own loader
+    return parse_dictionary(df)
+
+
+parse_dict = {
+    '.xlsx': parse_excel,
+    '.csv': parse_csv,
+    '.14c': parse_oxcal_file
+}
+

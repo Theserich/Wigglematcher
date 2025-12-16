@@ -44,8 +44,7 @@ class WidgetMain(QMainWindow):
                 self.__dict__[f'curveBox{i}'].setCurrentIndex(index)
         self.ageBox.stateChanged.connect(self.changeToAge)
         self.addDatasetButton.clicked.connect(self.addDataset_tab)
-        self.actionLoad_in_Curve.triggered.connect(self.load_Oxcal_curve)
-        self.actionLoad_in_curve_from_xlsx.triggered.connect(lambda: self.curveManager.load_excel_curve(self))
+        self.actionLoad_in_Curve.triggered.connect(lambda: self.curveManager.load_curve(self))
         self.actionSave_results_to_xlsx.triggered.connect(self.saveData)
         for i in range(self.Ncurves):
             self.__dict__[f'curveBox{i}'].currentIndexChanged.connect(self.changeCurves)

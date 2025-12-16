@@ -88,125 +88,59 @@ class CurveManager():
         with file_path.open('w', encoding='utf-8') as file:
             json.dump(savedata, file)
 
-    def load_Oxcal_file(self,file_path):
-        savename = Path(file_path).stem
-        result_dict = {}
-        headers = ['bp', '14C age', 'Sigma1', 'Delta 14C', 'Sigma']
-        with open(file_path, 'r') as file:
-            N = sum(1 for line in file if not line.lstrip().startswith('#'))
-        with open(file_path, 'r') as file:
-            startbool = True
-            secondheader = False
-            lines = file.readlines()
-            for head in headers:
-                result_dict[head] = zeros(N)
-            j = 0
-            for line in lines:
-                if line.lstrip().startswith('#') and startbool:
-                    continue
-                elif line.lstrip().startswith('#'):
-                    secondheader = True
-                    continue
-                startbool = False
-                line = line.replace('!', '').replace('?', '')
-                if secondheader == False:
-                    values = line.strip().split(',')
-                    for i in range(len(headers)):
-                        value = values[i]
-                        clean_value = value.split('#')[0].strip()  # Removes comment and extra whitespace
-                        number = float(clean_value)
-                        result_dict[headers[i]][j] = number
-                else:
-                    values = line.strip().split('\t')
-                    result_dict['bp'][j] = 1950-float(values[0])
-                    result_dict['14C age'][j] = -8033*log(float(values[3]))
-                    result_dict['Sigma1'][j] = 8033/float(values[3])*float(values[4])
-                j += 1
-        newdict = {}
-        newdict['calendaryear'] = 1950-result_dict['bp']
-        newdict['bp'] = result_dict['bp']
-        newdict['fm'] = exp(-result_dict['14C age']/8033)
-        newdict['fm_sig'] = newdict['fm'] /8033*result_dict['Sigma1']
-        self.data[savename] = newdict
-        savedict = {}
-        for key in newdict:
-            savedict[key] = list(newdict[key])
-        file_path = Path(self.curve_folder) / f"{savename}.json"
-        file_path.parent.mkdir(parents=True, exist_ok=True)  # Ensure folder exists
-        with file_path.open('w', encoding='utf-8') as file:
-            json.dump(savedict, file)
-
-        return True
-
-    def load_excel_curve(self, widget):
-        start_folder = 'Library/Data/ExcelCurves'
-        file_path, _ = QFileDialog.getOpenFileName(widget, "Open File", start_folder,
-                                                   "All Files (*);;Excel files(*.xlsx)")
-        label = Path(file_path).stem
-        if file_path:
-            print(f"Selected file: {file_path}")
-        else:
+    def load_curve(self, widget=None):
+        start_folder = 'Library/Data'
+        file_path, _ = QFileDialog.getOpenFileName(
+            widget,
+            "Open File",
+            start_folder,
+            "All Files (*);;OxCal (*.14c);;Excel (*.xlsx);;CSV (*.csv)"
+        )
+        if not file_path:
             return
-        df = loadexcel(file_path)
-        datakeys = list(df.keys())
-        newdata = {}
-        if 'age' in datakeys and 'age_sig' in datakeys:
-            newdata['fm'] = exp(-df['age'] / 8033)
-            newdata['fm_sig'] = newdata['fm'] / 8033 * df['age_sig']
-        elif 'fm' in datakeys and 'fm_sig' in datakeys:
-            newdata['fm'] = df['fm']
-            newdata['fm_sig'] = df['fm_sig']
+        file_path = Path(file_path)
+        label = file_path.stem
+        suffix = file_path.suffix.lower()
+        if suffix in parse_dict:
+            newdata = parse_dict[suffix](file_path)
         else:
-            QMessageBox.warning(None, "Invalid headers in the file",
-                                "Header most include 'age' and 'age_sig' or 'fm' and 'fm_sig'.")
-            return
-        if 'year' in datakeys:
-            newdata['bp'] = 1950 - df['year']
-        elif 'bp' in datakeys:
-            newdata['bp'] = df['bp']
-        elif 'calendaryear' in datakeys:
-            newdata['bp'] = 1950-df['calendaryear']
-        else:
-            QMessageBox.warning(None, "Invalid headers in the file",
-                                "Please add a header with 'bp', 'year' or 'calendaryear'")
+            QMessageBox.warning(None, "Unsupported file type",
+                                f"Cannot load files of type {suffix}")
             return
         fill_curve = 'intcal20'
         fill_data = self.data[fill_curve]
-        newdata['bp'] = append(newdata['bp'], fill_data['bp'][0])
-        newdata['bp'] = append(newdata['bp'], fill_data['bp'][-1])
-        newdata['fm'] = append(newdata['fm'], fill_data['fm'][0])
-        newdata['fm'] = append(newdata['fm'], fill_data['fm'][-1])
-        newdata['fm_sig'] = append(newdata['fm_sig'], fill_data['fm_sig'][0])
-        newdata['fm_sig'] = append(newdata['fm_sig'], fill_data['fm_sig'][-1])
+        for key in ['bp', 'fm', 'fm_sig']:
+            newdata[key] = append(newdata[key], fill_data[key][0])
+            newdata[key] = append(newdata[key], fill_data[key][-1])
         sortdf(newdata, 'bp')
         for i, bp in enumerate(newdata['bp'][1:]):
-            bp = float(bp)
             bp0 = float(newdata['bp'][i])
+            bp = float(bp)
             if bp - bp0 > 10:
-                intcalindexes = where((fill_data['bp'] > bp0) & (fill_data['bp'] < bp))[0]
-                for k in ['fm', 'fm_sig', 'bp']:
-                    newdata[k] = append(newdata[k], fill_data[k][intcalindexes])
-        [fms, fmsigs, years] = getF14CfromDataframe(newdata)
-        newdata = {}
-        newdata['calendaryear'] = years
-        newdata['bp'] = 1950 - years
-        newdata['fm'] = fms
-        newdata['fm_sig'] = fmsigs
-        savedata = {}
-        for key in newdata:
-            savedata[key] = list(newdata[key])
+                idx = where((fill_data['bp'] > bp0) & (fill_data['bp'] < bp))[0]
+                for k in ['bp', 'fm', 'fm_sig']:
+                    newdata[k] = append(newdata[k], fill_data[k][idx])
+        fms, fmsigs, years = getF14CfromDataframe(newdata)
+        newdata = {
+            'calendaryear': years,
+            'bp': 1950 - years,
+            'fm': fms,
+            'fm_sig': fmsigs
+        }
         self.data[label] = newdata
-        for dataset in widget.datasets:
-            dataset.calc.curveData = self
-        widget.recalcFlag = True
+        savepath = Path(self.curve_folder) / f"{label}.json"
+        savepath.parent.mkdir(parents=True, exist_ok=True)
+        with savepath.open('w', encoding='utf-8') as f:
+            json.dump({k: list(v) for k, v in newdata.items()}, f)
+        if widget:
+            for dataset in widget.datasets:
+                dataset.calc.curveData = self
+            widget.recalcFlag = True
+            for i in range(widget.Ncurves):
+                widget.__dict__[f'curveBox{i}'].addItem(label)
 
-        file_path = Path(self.curve_folder) / f"{label}.json"
-        file_path.parent.mkdir(parents=True, exist_ok=True)  # Ensure directory exists
-        with file_path.open('w', encoding='utf-8') as file:
-            json.dump(savedata, file)
-        for i in range(widget.Ncurves):
-            widget.__dict__[f'curveBox{i}'].addItem(label)
-        index = widget.curveBox0.findText(label)
-        if index != -1:  # -1 means not found
-            widget.curveBox0.setCurrentIndex(index)
-        widget.redraw()
+            index = widget.curveBox0.findText(label)
+            if index != -1:
+                widget.curveBox0.setCurrentIndex(index)
+
+            widget.redraw()
